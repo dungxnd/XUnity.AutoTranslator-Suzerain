@@ -105,10 +105,18 @@ namespace XUnity.Common.Constants
       public static readonly TypeContainer MaskableGraphic = FindType( "UnityEngine.UI.MaskableGraphic" );
       public static readonly TypeContainer Graphic = FindType( "UnityEngine.UI.Graphic" );
       public static readonly TypeContainer GUIContent = FindType( "UnityEngine.GUIContent" );
+#if MANAGED
       public static readonly TypeContainer WWW = FindType( "UnityEngine.WWW" );
+#else
+      public static readonly TypeContainer WWW = null;
+#endif
       public static readonly TypeContainer InputField = FindType( "UnityEngine.UI.InputField" );
       public static readonly TypeContainer GUI = FindType( "UnityEngine.GUI" );
+#if MANAGED
       public static readonly TypeContainer GUI_ToolbarButtonSize = FindType( "UnityEngine.GUI+ToolbarButtonSize" );
+#else
+      public static readonly TypeContainer GUI_ToolbarButtonSize = null;
+#endif
       public static readonly TypeContainer GUIStyle = FindType( "UnityEngine.GUIStyle" );
       public static readonly TypeContainer ImageConversion = FindType( "UnityEngine.ImageConversion" );
       public static readonly TypeContainer Texture2D = FindType( "UnityEngine.Texture2D" );

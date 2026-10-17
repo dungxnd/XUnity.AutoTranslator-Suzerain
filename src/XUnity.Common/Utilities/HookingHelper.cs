@@ -18,20 +18,23 @@ namespace XUnity.Common.Utilities
       private static readonly MethodInfo PatchMethod20 = ClrTypes.Harmony?.GetMethod( "Patch", new Type[] { ClrTypes.MethodBase, ClrTypes.HarmonyMethod, ClrTypes.HarmonyMethod, ClrTypes.HarmonyMethod, ClrTypes.HarmonyMethod } );
       private static readonly object Harmony;
       private static bool _loggedHarmonyError = false;
+#if IL2CPP
+      private static bool _loggedForceMonoModIgnored = false;
+#endif
 
       static HookingHelper()
       {
          try
          {
-            if( ClrTypes.HarmonyInstance != null )
-            {
-               Harmony = ClrTypes.HarmonyInstance.GetMethod( "Create", BindingFlags.Static | BindingFlags.Public )
-                  .Invoke( null, new object[] { "xunity.common.hookinghelper" } );
-            }
-            else if( ClrTypes.Harmony != null )
+            if( ClrTypes.Harmony != null )
             {
                Harmony = ClrTypes.Harmony.GetConstructor( new Type[] { typeof( string ) } )
                   .Invoke( new object[] { "xunity.common.hookinghelper" } );
+            }
+            else if( ClrTypes.HarmonyInstance != null )
+            {
+               Harmony = ClrTypes.HarmonyInstance.GetMethod( "Create", BindingFlags.Static | BindingFlags.Public )
+                  .Invoke( null, new object[] { "xunity.common.hookinghelper" } );
             }
             else
             {
@@ -41,6 +44,11 @@ namespace XUnity.Common.Utilities
          catch( Exception e )
          {
             XuaLogger.Common.Error( e, "An unexpected exception occurred during harmony initialization. Harmony hooks will be unavailable!" );
+         }
+
+         if( Harmony != null )
+         {
+            XuaLogger.Common.Info( "Harmony hooks initialized using: " + ( ClrTypes.Harmony ?? ClrTypes.HarmonyInstance )?.AssemblyQualifiedName );
          }
       }
 
@@ -86,6 +94,20 @@ namespace XUnity.Common.Utilities
          IntPtr originalPtr = IntPtr.Zero;
          try
          {
+#if IL2CPP
+            // MM_Detour methods are only compiled for managed runtimes. In IL2CPP, forcing
+            // MonoMod hooks would make every hook fail, so always prefer Harmony/native detours.
+            if( forceExternHooks )
+            {
+               if( !_loggedForceMonoModIgnored )
+               {
+                  _loggedForceMonoModIgnored = true;
+                  XuaLogger.Common.Warn( "ForceMonoModHooks is enabled, but MonoMod detours are not implemented in IL2CPP. Ignoring it." );
+               }
+               forceExternHooks = false;
+            }
+#endif
+
             // initialization warning
             if( Harmony == null )
             {
@@ -255,14 +277,7 @@ namespace XUnity.Common.Utilities
             }
             else
             {
-               if( forced )
-               {
-                  XuaLogger.Common.Warn( $"Cannot hook '{original.DeclaringType.FullName}.{original.Name}'. Harmony is not supported in this runtime and no alternate MonoMod hook has been implemented. Failing hook: '{type.Name}'." );
-               }
-               else
-               {
-                  XuaLogger.Common.Warn( $"Cannot hook '{original.DeclaringType.FullName}.{original.Name}'. Harmony is not supported in this runtime and no alternate MonoMod hook has been implemented. Failing hook: '{type.Name}'." );
-               }
+               XuaLogger.Common.Warn( $"Cannot hook '{original.DeclaringType.FullName}.{original.Name}'. Neither a Harmony patch nor a MonoMod detour is available for this hook. Failing hook: '{type.Name}'." );
             }
          }
 
