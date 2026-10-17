@@ -8,6 +8,8 @@
 > * Unity 6's TMP/uGUI 2.0 no longer has the `SetCharArray(int[], int, int)` overload. The related hook warning is expected and harmless — translation still hooks `text`, `SetText(...)` and the `char[]` overloads.
 > * For Unity 6 fonts, use the `arialuni_sdf_u6000` asset bundle from the `TMP_Font_AssetBundles` release asset and set `FallbackFontTextMeshPro=arialuni_sdf_u6000`. Set `EnableIMGUI=False` for IL2CPP.
 > * Known limitation: heavily stripped IL2CPP games can still throw `Method unstripping failed` from the IMGUI-based translator windows (upstream issue #864).
+>
+> **Install for Suzerain:** use the latest **BepInEx 6 IL2CPP nightly build** from [builds.bepinex.dev/projects/bepinex_be](https://builds.bepinex.dev/projects/bepinex_be). BepInEx 5.x does not support IL2CPP.
 
 ## Index
  * [Introduction](#introduction)
@@ -110,9 +112,9 @@ The file structure should like like this:
 ```
 
 #### BepInEx IL2CPP Plugin
-The instructions for installation for IL2CPP are the same as for the standard version except that you must install BepInEx 6 for IL2CPP, which as of this writing are only available as bleeding edge builds [right here](https://builds.bepis.io/projects/bepinex_be) and you must use the `BepInEx-IL2CPP` package of this plugin instead.
+For Suzerain (Unity 6 / IL2CPP), install the latest **BepInEx 6 IL2CPP nightly build** from [builds.bepinex.dev/projects/bepinex_be](https://builds.bepinex.dev/projects/bepinex_be). The stable BepInEx 5.x releases do not support IL2CPP. After installing BepInEx, use the `XUnity.AutoTranslator-BepInEx-IL2CPP-{VERSION}.zip` package of this plugin instead of the standard BepInEx package.
 
-The current version (5.4.0) was built against bleeding edge build 704.
+The IL2CPP plugin is built against BepInEx 6 bleeding-edge build 704.
 
 ### MelonLoader Plugin
 REQUIRES: [Melon Loader](https://melonwiki.xyz) (follow its installation instructions first!).
