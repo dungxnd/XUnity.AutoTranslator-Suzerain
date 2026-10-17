@@ -180,7 +180,7 @@ namespace XUnity.Common.Utilities
         public void ResetInputAxes() { /*Not supported*/ }
 
         public Vector3 mousePosition => Mouse.current.position.ReadValue();
-        public Vector2 mouseScrollDelta => Mouse.current.scroll.ReadValue();
+        public Vector2 mouseScrollDelta => Mouse.current?.TryGetChildControl( "scroll" ) is Vector2Control scroll ? scroll.ReadValue() : Vector2.zero;
         public bool mousePresent => Mouse.current.enabled;
 
         public bool anyKey
@@ -915,7 +915,17 @@ namespace XUnity.Common.Utilities
         }
 
         [MethodImpl(MethodImplOptions.NoInlining)]
-        public Il2CppLegacyInputSystem() => GetKeyDown(KeyCode.A);
+        public Il2CppLegacyInputSystem()
+        {
+            var inputType = GetInputType();
+            var getKeyDown = inputType.GetMethod( "GetKeyDown", new[] { typeof( KeyCode ) } );
+            if( getKeyDown == null )
+            {
+                throw new MissingMethodException( inputType.FullName, "GetKeyDown" );
+            }
+
+            getKeyDown.Invoke( null, new object[] { KeyCode.A } );
+        }
 
         private readonly object[] _stringInputArgs = new object[1];
         private readonly object[] _keyCodeInputArgs = new object[1];

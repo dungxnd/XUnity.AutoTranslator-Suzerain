@@ -18,6 +18,25 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
       private static bool _hasReadFallbackFontTextMeshPro = false;
       private static UnityEngine.Object FallbackFontTextMeshPro;
 
+#if IL2CPP
+      private static bool ShouldRetryWithCustomProxies( Exception e )
+      {
+         while( ( e is System.Reflection.TargetInvocationException || e is TypeInitializationException ) && e.InnerException != null )
+         {
+            e = e.InnerException;
+         }
+
+         if( e is NotSupportedException || e is MissingMethodException )
+         {
+            return true;
+         }
+
+         var message = e.ToString();
+         return message.IndexOf( "missing", StringComparison.OrdinalIgnoreCase ) >= 0
+            || message.IndexOf( "not found", StringComparison.OrdinalIgnoreCase ) >= 0;
+      }
+#endif
+
       public static Font GetOrCreate( int size )
       {
          if( !CachedFonts.TryGetValue( size, out Font font ) )
@@ -38,7 +57,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
                OverrideFontTextMeshPro = FontHelper.GetTextMeshProFont( Settings.OverrideFontTextMeshPro );
             }
 #if IL2CPP
-            catch( Exception e ) when( e.ToString().ToLowerInvariant().Contains( "missing" ) || e.ToString().ToLowerInvariant().Contains( "not found" ) )
+            catch( Exception e ) when( ShouldRetryWithCustomProxies( e ) )
             {
                XuaLogger.AutoTranslator.Warn( e, "An error occurred while loading text mesh pro override font. Retrying load with custom proxies..." );
 
@@ -71,7 +90,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
                FallbackFontTextMeshPro = FontHelper.GetTextMeshProFont( Settings.FallbackFontTextMeshPro );
             }
 #if IL2CPP
-            catch( Exception e ) when( e.ToString().ToLowerInvariant().Contains( "missing" ) || e.ToString().ToLowerInvariant().Contains( "not found" ) )
+            catch( Exception e ) when( ShouldRetryWithCustomProxies( e ) )
             {
                XuaLogger.AutoTranslator.Warn( e, "An error occurred while loading text mesh pro fallback font. Retrying load with custom proxies..." );
 

@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XUnity.RuntimeHooker.Core\XUnity.RuntimeHooker.Core.csproj" />
+    <ProjectReference Include="..\XUnity.RuntimeHooker.Trampolines\XUnity.RuntimeHooker.Trampolines.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

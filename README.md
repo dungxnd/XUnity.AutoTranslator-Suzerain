@@ -1,5 +1,14 @@
 ﻿# XUnity Auto Translator
 
+> ### Suzerain fork notes — Unity 6 / IL2CPP fixes
+> This fork contains local fixes for Unity 6 (6000.x) IL2CPP games using the new Input System:
+> * Fixed `MissingMethodException: UnityEngine.InputSystem.Mouse.get_scroll()` by reading the `scroll` child control instead of the version-sensitive property (`XUnity.Common/Utilities/UnityInput.cs`).
+> * Fixed IL2CPP legacy-input detection so games with legacy input disabled correctly fall back to the new Input System instead of silently ignoring hotkeys.
+> * Improved IL2CPP TextMeshPro font loading so the custom `AssetBundle` proxy fallback is also attempted on `Method unstripping failed` / `NotSupportedException` (`FontCache.cs`).
+> * Unity 6's TMP/uGUI 2.0 no longer has the `SetCharArray(int[], int, int)` overload. The related hook warning is expected and harmless — translation still hooks `text`, `SetText(...)` and the `char[]` overloads.
+> * For Unity 6 fonts, use the `arialuni_sdf_u6000` asset bundle from the `TMP_Font_AssetBundles` release asset and set `FallbackFontTextMeshPro=arialuni_sdf_u6000`. Set `EnableIMGUI=False` for IL2CPP.
+> * Known limitation: heavily stripped IL2CPP games can still throw `Method unstripping failed` from the IMGUI-based translator windows (upstream issue #864).
+
 ## Index
  * [Introduction](#introduction)
  * [Plugin Frameworks](#plugin-frameworks)
