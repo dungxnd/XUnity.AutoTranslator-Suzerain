@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net35;net6.0</TargetFrameworks>
+		<TargetFrameworks>net35;net471;net6.0</TargetFrameworks>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='net35'">
+	<PropertyGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<DefineConstants>MANAGED</DefineConstants>
 	</PropertyGroup>
 
@@ -12,7 +12,7 @@
 		<DefineConstants>IL2CPP</DefineConstants>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net35'">
+	<ItemGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<ProjectReference Include="..\UnityEngine\UnityEngine.csproj" />
 	</ItemGroup>
 

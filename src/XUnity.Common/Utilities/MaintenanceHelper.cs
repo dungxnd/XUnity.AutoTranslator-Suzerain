@@ -36,6 +36,18 @@ namespace XUnity.Common.Utilities
          }
       }
 
+      /// <summary>
+      /// WARNING: Pubternal API (internal). Do not use. May change during any update.
+      /// </summary>
+      /// <param name="action"></param>
+      public static void RemoveMaintenanceFunction( Action action )
+      {
+         lock( Sync )
+         {
+            RegisteredActions.RemoveAll( x => x.Action == action );
+         }
+      }
+
       private static void StartMaintenance()
       {
          // start a thread that will periodically removed unused references
@@ -50,20 +62,23 @@ namespace XUnity.Common.Utilities
 
          while( true )
          {
+            ActionRegistration[] snapshot;
             lock( Sync )
             {
-               foreach( var registration in RegisteredActions )
+               snapshot = RegisteredActions.ToArray();
+            }
+
+            foreach( var registration in snapshot )
+            {
+               if( i % registration.Filter == 0 )
                {
-                  if( i % registration.Filter == 0 )
+                  try
                   {
-                     try
-                     {
-                        registration.Action();
-                     }
-                     catch( Exception e )
-                     {
-                        XuaLogger.Common.Error( e, "An unexpected error occurred during maintenance." );
-                     }
+                     registration.Action();
+                  }
+                  catch( Exception e )
+                  {
+                     XuaLogger.Common.Error( e, "An unexpected error occurred during maintenance." );
                   }
                }
             }

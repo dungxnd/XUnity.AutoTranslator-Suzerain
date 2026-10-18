@@ -58,8 +58,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.UIResize
          {
             var context = new TranslationFileLoadingContext();
 
-            string[] translations = reader.ReadToEnd().Split( new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries );
-            foreach( string translatioOrDirective in translations )
+            foreach( var translatioOrDirective in TranslationFileReader.ReadLines( reader ) )
             {
                var directive = TranslationFileDirective.Create( translatioOrDirective );
                if( directive != null )

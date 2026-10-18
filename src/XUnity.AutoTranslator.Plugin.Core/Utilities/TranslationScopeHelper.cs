@@ -1,5 +1,6 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.SceneManagement;
 using XUnity.AutoTranslator.Plugin.Core;
 using XUnity.AutoTranslator.Plugin.Core.Configuration;
@@ -68,12 +69,31 @@ namespace XUnity.AutoTranslator.Plugin.Utilities
          return SceneManager.GetActiveScene().buildIndex;
       }
 
+#if IL2CPP
+      private static UnityAction<Scene, LoadSceneMode> _sceneLoadedHandler;
+#endif
+
       public static void RegisterSceneLoadCallback( Action<int> sceneLoaded )
       {
 #if IL2CPP
-         UnityTypes.SceneManager_Methods.add_sceneLoaded( new Action<Scene, LoadSceneMode>( ( scene, mode ) => sceneLoaded( scene.buildIndex ) ) );
+         UnregisterSceneLoadCallback();
+         _sceneLoadedHandler = new Action<Scene, LoadSceneMode>( ( scene, mode ) => sceneLoaded( scene.buildIndex ) );
+         UnityTypes.SceneManager_Methods.add_sceneLoaded( _sceneLoadedHandler );
 #else
          SceneManagerLoader.EnableSceneLoadScanInternal( sceneLoaded );
+#endif
+      }
+
+      public static void UnregisterSceneLoadCallback()
+      {
+#if IL2CPP
+         if( _sceneLoadedHandler != null && UnityTypes.SceneManager_Methods.remove_sceneLoaded != null )
+         {
+            UnityTypes.SceneManager_Methods.remove_sceneLoaded( _sceneLoadedHandler );
+            _sceneLoadedHandler = null;
+         }
+#else
+         SceneManagerLoader.DisableSceneLoadScan();
 #endif
       }
 
@@ -86,10 +106,24 @@ namespace XUnity.AutoTranslator.Plugin.Utilities
 #if MANAGED
    internal static class SceneManagerLoader
    {
+      private static UnityAction<Scene, LoadSceneMode> _sceneLoadedHandler;
+
       public static void EnableSceneLoadScanInternal( Action<int> sceneLoaded )
       {
+         DisableSceneLoadScan();
+
          // specified in own method, because of chance that this has changed through Unity lifetime
-         SceneManager.sceneLoaded += ( arg1, arg2 ) => sceneLoaded( arg1.buildIndex );
+         _sceneLoadedHandler = ( arg1, arg2 ) => sceneLoaded( arg1.buildIndex );
+         SceneManager.sceneLoaded += _sceneLoadedHandler;
+      }
+
+      public static void DisableSceneLoadScan()
+      {
+         if( _sceneLoadedHandler != null )
+         {
+            SceneManager.sceneLoaded -= _sceneLoadedHandler;
+            _sceneLoadedHandler = null;
+         }
       }
    }
 #endif

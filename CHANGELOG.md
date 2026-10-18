@@ -1,4 +1,34 @@
-﻿### 5.6.4
+﻿# Changelog
+
+This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
+
+### 6.0.0
+
+#### New
+* Redesigned in-game UI: automatic scaling from 720p to 4K/ultrawide/Steam Deck, a manual `UI Scale` control, dark flat theme, CJK-capable font, consistent hover/pressed/disabled states, and screen-clamped windows
+* Improved window UX: cascaded default positions, content-sized main window, aggregator panels that fit the screen with per-panel scrolling, dropdowns that stay open while scrolling, `Esc` closes the topmost window, click-to-front, title-bar dragging, and copy-success toasts
+* Faster large translation loading and incremental reloads, so editing one file no longer triggers a full reparse freeze
+* Safer translation storage: prune preserves comments, directives, and regex/splitter lines; rewrites are atomic with rotating backups; appends repair a missing trailing newline; external edits are not silently clobbered
+* Wrapper-aware cache reuse: safe surrounding wrappers (paired quotes, brackets, text-like angle brackets, and numbered/bulleted prefixes) now reuse the cached core translation and re-apply the wrapper instead of creating a new line; wrapped translations are also recognized to avoid re-translation (for example `1. Hello brother`, `Hello brother`, `"Hello brother"`, and `<Hello brother>` share one translation)
+
+#### Change
+* Added a `net471` modern managed build alongside the default `net35` build; `net6.0` remains the IL2CPP target. Release packaging still defaults to `net35`
+* Added regression tests for encoding, parsing boundaries, prune, atomic rewrite, incremental reload, and cache lookup
+* CI builds `net35`, `net471`, and `net6.0`, and runs the text tests on `net471` and `net8.0`
+* Added `docs/target-framework-support.md` and moved code-level extension guides to `docs/developer-guide.md`
+* CI release notes now use the matching `CHANGELOG.md` version section; the release body is left empty when no matching version is found
+
+#### Bug Fix
+* URLs and `//` now round-trip correctly through save/reload instead of being corrupted by escaping
+* Reboot now clears the shutdown latch, translation counter, and spam counters, so spam/limit shutdowns recover without restarting the game
+* Fixed lifecycle leaks and stale state: plugin caches are disposed/evicted, maintenance callbacks unregister, scene callbacks are removed, watchers debounce/recover from errors, and endpoints stop without `Thread.Abort`
+* The negative regex cache is now bounded by generations instead of discarding every miss at 10k entries
+* Unity 6 / IL2CPP input, hook selection, harmless missing-type warnings, and TMP font fallback fixes from the fork line
+
+#### Remove
+* No removals in this release.
+
+### 5.6.4
 * FEATURE - Added automatic UI scaling, a dark themed IMGUI interface, CJK-capable font selection, and a UI Scale control in Aggregator Options
 * FEATURE - Added Esc-to-close, window bring-to-front, copy confirmation toasts, content-driven main window sizing, and screen-aware aggregator panel sizing
 * BUG FIX - Fixed IL2CPP hooks being forced through the managed MonoMod path when ForceMonoModHooks was enabled; Harmony 2.x is now preferred

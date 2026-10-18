@@ -19,7 +19,24 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       public bool IsApplicable()
       {
-         return IsValidExecutable() && _resolutionCheck( new ResolutionCheckVariables( Screen.width, Screen.height ) );
+         if( !IsValidExecutable() )
+         {
+            return false;
+         }
+
+         // Keep the Unity API access in a separate method so it is not JITted at all
+         // when no resolution directive is active.
+         if( _resolutionCheck == DefaultResolutionCheck )
+         {
+            return true;
+         }
+
+         return EvaluateResolution();
+      }
+
+      private bool EvaluateResolution()
+      {
+         return _resolutionCheck( new ResolutionCheckVariables( Screen.width, Screen.height ) );
       }
 
       public bool IsValidExecutable()

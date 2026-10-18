@@ -47,6 +47,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Parsing
       public ParserResult Parse( string input, int scope )
       {
          if( !Settings.HandleRichText ) return null;
+         if( string.IsNullOrEmpty( input ) || input.IndexOf( '<' ) < 0 ) return null;
 
          var allMatches = new List<ArgumentedUntranslatedTextInfo>();
          var template = new StringBuilder( input.Length );

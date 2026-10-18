@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFrameworks>net35;net6.0</TargetFrameworks>
+		<TargetFrameworks>net35;net471;net6.0</TargetFrameworks>
 		<AssemblyVersion>0.0.0.0</AssemblyVersion>
 		<WarningLevel>0</WarningLevel>
 		<Optimize>false</Optimize>
@@ -12,7 +12,7 @@
 		<DefineConstants>IL2CPP</DefineConstants>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='net35'">
+	<PropertyGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<DefineConstants>MANAGED</DefineConstants>
 	</PropertyGroup>
 

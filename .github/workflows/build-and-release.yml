@@ -64,8 +64,17 @@ jobs:
       - name: Build release
         run: msbuild XUnity.AutoTranslator.sln /m /p:Configuration=Release /verbosity:minimal
 
+      - name: Verify modern managed target (net471)
+        run: msbuild src/XUnity.AutoTranslator.Plugin.Core/XUnity.AutoTranslator.Plugin.Core.csproj /t:Build /p:Configuration=Release /p:TargetFramework=net471 /p:SkipILRepack=true /verbosity:minimal
+
       - name: Run unit tests
         run: dotnet test test/XUnity.Common.Tests/XUnity.Common.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal
+
+      - name: Run core text pipeline tests (net471)
+        run: dotnet test test/XUnity.AutoTranslator.Plugin.Core.Tests/XUnity.AutoTranslator.Plugin.Core.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal --filter "FullyQualifiedName~TextHelperTests|FullyQualifiedName~TranslationFileReaderWriterTests|FullyQualifiedName~SimpleTextTranslationCacheTests|FullyQualifiedName~TextTranslationCacheTests"
+
+      - name: Run core text pipeline tests (net8.0)
+        run: dotnet test test/XUnity.AutoTranslator.Plugin.Core.TextTests/XUnity.AutoTranslator.Plugin.Core.TextTests.csproj --configuration Release --verbosity normal
 
       - name: Show release archives
         shell: pwsh
@@ -88,6 +97,37 @@ jobs:
       contents: write
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Extract changelog
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          awk -v version="$version" '
+            /^###[[:space:]]+/ {
+              if (found) exit
+              heading=$0
+              sub(/^###[[:space:]]+/, "", heading)
+              sub(/^v/, "", heading)
+              gsub(/[[:space:]]+$/, "", heading)
+              if (heading == version) {
+                found=1
+                print "### " version
+                next
+              }
+            }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+
+          if [ -s release-notes.md ]; then
+            echo "Using CHANGELOG entry for $version."
+          else
+            echo "No CHANGELOG entry found for $version; release notes will be empty."
+          fi
+
       - name: Download release archives
         uses: actions/download-artifact@v8
         with:
@@ -99,4 +139,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" dist/*.zip --title "XUnity.AutoTranslator $TAG" --generate-notes
+        run: |
+          if [ -s release-notes.md ]; then
+            gh release create "$TAG" dist/*.zip --title "XUnity.AutoTranslator $TAG" --notes-file release-notes.md
+          else
+            gh release create "$TAG" dist/*.zip --title "XUnity.AutoTranslator $TAG"
+          fi

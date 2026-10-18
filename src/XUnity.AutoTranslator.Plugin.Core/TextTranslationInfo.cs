@@ -152,11 +152,6 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   {
                      copyMaterial = _FontMaterialCopies[ oldMaterial ] = UnityEngine.Object.Instantiate( oldMaterial );
 
-                     // Keep original font
-                     var uiCopy = UnityEngine.Object.Instantiate( ui as UnityEngine.Object );
-                     fontProperty.Set( uiCopy, previousFont );
-                     fontMaterialProperty.Set( uiCopy, oldMaterial );
-
                      // Copy required material properties
                      copyMaterial.SetTexture( "_MainTex", newMaterial.GetTexture( "_MainTex" ) );
                      copyMaterial.SetFloat( "_TextureHeight", newMaterial.GetFloat( "_TextureHeight" ) );

@@ -28,7 +28,6 @@ namespace XUnity.AutoTranslator.Plugin.Core
       private static object _writeToFileSync = new object(); // static on purpose so we do not start 100 IO operations at the same time
       private Dictionary<string, string> _newTranslations = new Dictionary<string, string>();
       private Coroutine _currentScheduledTask;
-      private bool _shouldOverrideEntireFile;
 
       /// <summary>
       /// Creates a translation cache and loads the translations in the specified file.
@@ -157,44 +156,40 @@ namespace XUnity.AutoTranslator.Plugin.Core
       {
          try
          {
-            var reader = new StreamReader( stream, Encoding.UTF8 );
+            var result = TranslationFileReader.ReadStream( stream, LoadedFile, true, closeStream );
+            if( result.SkippedLines > 0 )
             {
-               string[] translations = reader.ReadToEnd().Split( new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries );
-               foreach( string translatioOrDirective in translations )
+               XuaLogger.AutoTranslator.Warn( $"Skipped {result.SkippedLines} malformed translation line(s) while loading '{LoadedFile}'." );
+            }
+
+            foreach( var section in result.Set.Sections )
+            {
+               foreach( var line in section.Lines )
                {
                   try
                   {
-                     var kvp = TextHelper.ReadTranslationLineAndDecode( translatioOrDirective );
-                     if( kvp != null )
+                     if( line.Kind == TranslationFileLineKind.Regex )
                      {
-                        string key = kvp[ 0 ];
-                        string value = kvp[ 1 ];
-
-                        if( !string.IsNullOrEmpty( key ) && !string.IsNullOrEmpty( value ) && key != value )
+                        try
                         {
-                           if( key.StartsWith( "r:" ) )
-                           {
-                              try
-                              {
-                                 var regex = new RegexTranslation( key, value );
+                           var regex = new RegexTranslation( line.Key, line.Value );
 
-                                 AddTranslationRegex( regex );
-                              }
-                              catch( Exception e )
-                              {
-                                 XuaLogger.AutoTranslator.Warn( e, $"An error occurred while constructing regex translation: '{translatioOrDirective}'." );
-                              }
-                           }
-                           else
-                           {
-                              AddTranslationInternal( key, value.MakeRedirected(), allowOverride );
-                           }
+                           AddTranslationRegex( regex );
                         }
+                        catch( Exception e )
+                        {
+                           XuaLogger.AutoTranslator.Warn( e, $"An error occurred while constructing regex translation: '{line.Key}={line.Value}'." );
+                        }
+                     }
+                     else if( ( line.Kind == TranslationFileLineKind.Translation || line.Kind == TranslationFileLineKind.SplitterRegex )
+                        && line.Key != line.Value )
+                     {
+                        AddTranslationInternal( line.Key, line.Value.MakeRedirected(), allowOverride );
                      }
                   }
                   catch( Exception e )
                   {
-                     XuaLogger.AutoTranslator.Warn( e, $"An error occurred while reading translation: '{translatioOrDirective}'." );
+                     XuaLogger.AutoTranslator.Warn( e, $"An error occurred while reading translation: '{line.Key}={line.Value}'." );
                   }
                }
             }
@@ -275,20 +270,15 @@ namespace XUnity.AutoTranslator.Plugin.Core
          {
             AddTranslationInternal( key, value.MakeRedirected(), false );
 
-            QueueNewTranslationForDisk( key, value, hadTranslated );
+            QueueNewTranslationForDisk( key, value );
          }
       }
 
-      private void QueueNewTranslationForDisk( string key, string value, bool hadTranslated )
+      private void QueueNewTranslationForDisk( string key, string value )
       {
          lock( _newTranslations )
          {
             _newTranslations[ key ] = value;
-
-            if( hadTranslated )
-            {
-               _shouldOverrideEntireFile = true;
-            }
 
             if( _currentScheduledTask != null )
             {
@@ -308,53 +298,40 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       internal void SaveNewTranslationsToDisk( object state )
       {
-         bool overwriteFile = false;
-         if( _newTranslations.Count > 0 )
+         Dictionary<string, string> newTranslations = null;
+         lock( _newTranslations )
          {
-            Dictionary<string, string> newTranslations;
-            lock( _newTranslations )
+            if( _newTranslations.Count > 0 )
             {
-               newTranslations = _newTranslations.ToDictionary( x => x.Key, x => x.Value );
+               newTranslations = new Dictionary<string, string>( _newTranslations );
                _newTranslations.Clear();
-
-               if( _shouldOverrideEntireFile )
-               {
-                  overwriteFile = true;
-                  _shouldOverrideEntireFile = false;
-
-                  lock( _translations )
-                  {
-                     foreach( var kvp in _translations )
-                     {
-                        if( !newTranslations.ContainsKey( kvp.Key ) )
-                        {
-                           newTranslations[ kvp.Key ] = kvp.Value;
-                        }
-                     }
-
-                     foreach( var regex in _defaultRegexes )
-                     {
-                        if( !newTranslations.ContainsKey( regex.Key ) )
-                        {
-                           newTranslations[ regex.Key ] = regex.Value;
-                        }
-                     }
-                  }
-               }
             }
+         }
 
-            lock( _writeToFileSync )
+         if( newTranslations == null )
+         {
+            return;
+         }
+
+         lock( _writeToFileSync )
+         {
+            try
             {
-               Directory.CreateDirectory( new FileInfo( LoadedFile ).Directory.FullName );
+               TranslationWriter.Append( LoadedFile, newTranslations );
+            }
+            catch( Exception e )
+            {
+               XuaLogger.AutoTranslator.Error( e, "An error occurred while writing new translations to disk." );
 
-               using( var stream = File.Open( LoadedFile, overwriteFile ? FileMode.Create : FileMode.Append, FileAccess.Write ) )
-               using( var writer = new StreamWriter( stream, Encoding.UTF8 ) )
+               lock( _newTranslations )
                {
                   foreach( var kvp in newTranslations )
                   {
-                     writer.WriteLine( TextHelper.Encode( kvp.Key ) + '=' + TextHelper.Encode( kvp.Value ) );
+                     if( !_newTranslations.ContainsKey( kvp.Key ) )
+                     {
+                        _newTranslations[ kvp.Key ] = kvp.Value;
+                     }
                   }
-                  writer.Flush();
                }
             }
          }
@@ -368,6 +345,43 @@ namespace XUnity.AutoTranslator.Plugin.Core
       /// <param name="value"></param>
       /// <returns></returns>
       public virtual bool TryGetTranslation( string untranslatedText, bool allowRegex, out string value )
+      {
+         if( TryGetTranslationCore( untranslatedText, allowRegex, out value ) )
+         {
+            return true;
+         }
+
+         if( string.IsNullOrEmpty( untranslatedText ) )
+         {
+            value = null;
+            return false;
+         }
+
+         var currentText = untranslatedText;
+         List<TranslationTextWrapper.Layer> layers = null;
+
+         while( TranslationTextWrapper.TryUnwrapOneLayer( currentText, out var unwrappedText, out var layer ) )
+         {
+            if( layers == null )
+            {
+               layers = new List<TranslationTextWrapper.Layer>();
+            }
+
+            layers.Add( layer );
+            currentText = unwrappedText;
+
+            if( TryGetTranslationCore( currentText, allowRegex, out var unwrappedValue ) && unwrappedValue != null )
+            {
+               value = TranslationTextWrapper.Wrap( layers, unwrappedValue );
+               return true;
+            }
+         }
+
+         value = null;
+         return false;
+      }
+
+      private bool TryGetTranslationCore( string untranslatedText, bool allowRegex, out string value )
       {
          var key = new UntranslatedText( untranslatedText, false, true, Settings.FromLanguageUsesWhitespaceBetweenWords, false, Settings.TemplateAllNumberAway );
 

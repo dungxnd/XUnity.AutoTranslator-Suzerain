@@ -319,7 +319,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
          }
          catch
          {
-            _guiContentCheckFailed = false;
+            _guiContentCheckFailed = true;
          }
          text = null;
          return false;

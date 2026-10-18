@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>XUnity.AutoTranslator.Plugin.Core.Tests.Net</AssemblyName>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\AssemblyInfo.cs" Link="AssemblyInfo.cs" />
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\TextHelperTests.cs" Link="TextHelperTests.cs" />
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\TranslationFileReaderWriterTests.cs" Link="TranslationFileReaderWriterTests.cs" />
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\SimpleTextTranslationCacheTests.cs" Link="SimpleTextTranslationCacheTests.cs" />
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\TextTranslationCacheTests.cs" Link="TextTranslationCacheTests.cs" />
+    <Compile Include="..\XUnity.AutoTranslator.Plugin.Core.Tests\TranslationTextWrapperTests.cs" Link="TranslationTextWrapperTests.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="XUnity.AutoTranslator.Plugin.Core">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.AutoTranslator.Plugin.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="XUnity.Common">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

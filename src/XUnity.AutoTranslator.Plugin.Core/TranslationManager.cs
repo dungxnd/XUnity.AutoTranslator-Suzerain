@@ -197,39 +197,52 @@ namespace XUnity.AutoTranslator.Plugin.Core
          }
       }
 
+      private const int MaxJobsStartedPerFrame = 64;
+
       public void KickoffTranslations()
       {
-         // iterate in reverse order so we can remove from list while iterating
-         var endpoints = _endpointsWithUnstartedJobs;
+         // Take a snapshot because starting a job can unschedule the endpoint.
+         var endpoints = _endpointsWithUnstartedJobs.ToArray();
+         var remainingStarts = MaxJobsStartedPerFrame;
 
-         for( int i = endpoints.Count - 1; i >= 0; i-- )
+         for( int i = endpoints.Length - 1; i >= 0; i-- )
          {
             var endpoint = endpoints[ i ];
 
             if( Settings.EnableBatching && endpoint.CanBatch )
             {
-               while( endpoint.HasUnstartedBatch )
+               while( endpoint.HasUnstartedBatch && remainingStarts > 0 )
                {
                   if( endpoint.IsBusy ) break;
 
                   endpoint.HandleNextBatch();
+                  remainingStarts--;
                }
             }
             else
             {
-               while( endpoint.HasUnstartedJob )
+               while( endpoint.HasUnstartedJob && remainingStarts > 0 )
                {
                   if( endpoint.IsBusy ) break;
 
                   endpoint.HandleNextJob();
+                  remainingStarts--;
                }
+            }
+
+            if( remainingStarts <= 0 )
+            {
+               break;
             }
          }
       }
 
       public void ScheduleUnstartedJobs( TranslationEndpointManager endpoint )
       {
-         _endpointsWithUnstartedJobs.Add( endpoint );
+         if( endpoint != null && !_endpointsWithUnstartedJobs.Contains( endpoint ) )
+         {
+            _endpointsWithUnstartedJobs.Add( endpoint );
+         }
       }
 
       public void UnscheduleUnstartedJobs( TranslationEndpointManager endpoint )

@@ -7,7 +7,7 @@
 		<PackageTags>unity;xunity;resource redirection</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<DevelopmentDependency>True</DevelopmentDependency>
-		<TargetFrameworks>net35;net6.0</TargetFrameworks>
+		<TargetFrameworks>net35;net471;net6.0</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<Version>$(VersionRedirector)</Version>
 	</PropertyGroup>
@@ -20,7 +20,7 @@
 		<DocumentationFile>bin\Release\net35\XUnity.ResourceRedirector.xml</DocumentationFile>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='net35'">
+	<PropertyGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<DefineConstants>MANAGED</DefineConstants>
 	</PropertyGroup>
 
@@ -28,7 +28,7 @@
 		<DefineConstants>IL2CPP</DefineConstants>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net35'">
+	<ItemGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<ProjectReference Include="..\UnityEngine\UnityEngine.csproj" />
 	</ItemGroup>
 

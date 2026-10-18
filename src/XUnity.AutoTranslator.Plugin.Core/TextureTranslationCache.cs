@@ -156,7 +156,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
             try
             {
                Directory.CreateDirectory( Settings.TexturesPath );
-               _fileWatcher = new SafeFileWatcher( Settings.TexturesPath );
+               _fileWatcher = new SafeFileWatcher( Settings.TexturesPath, ".png", ".zip" );
                _fileWatcher.DirectoryUpdated += FileWatcher_DirectoryUpdated;
             }
             catch( Exception e )
@@ -168,6 +168,8 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void FileWatcher_DirectoryUpdated()
       {
+         if( _disposed ) return;
+
          TextureTranslationFileChanged?.Invoke();
       }
 
@@ -422,7 +424,17 @@ namespace XUnity.AutoTranslator.Plugin.Core
          {
             if( disposing )
             {
-               _fileWatcher?.Dispose();
+               if( _fileWatcher != null )
+               {
+                  _fileWatcher.DirectoryUpdated -= FileWatcher_DirectoryUpdated;
+                  _fileWatcher.Dispose();
+                  _fileWatcher = null;
+               }
+
+               TextureTranslationFileChanged = null;
+               _translatedImages.Clear();
+               _untranslatedImages.Clear();
+               _keyToFileName.Clear();
             }
 
             _disposed = true;

@@ -7,7 +7,7 @@
 		<PackageTags>unity;xunity;machine translation</PackageTags>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<DevelopmentDependency>True</DevelopmentDependency>
-		<TargetFrameworks>net35;net6.0</TargetFrameworks>
+		<TargetFrameworks>net35;net471;net6.0</TargetFrameworks>
 		<LangVersion>latest</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
@@ -20,7 +20,7 @@
 		<DocumentationFile>bin\Release\$(TargetFramework)\XUnity.AutoTranslator.Plugin.Core.xml</DocumentationFile>
 	</PropertyGroup>
 
-	<PropertyGroup Condition="'$(TargetFramework)'=='net35'">
+	<PropertyGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<DefineConstants>MANAGED</DefineConstants>
 	</PropertyGroup>
 
@@ -28,7 +28,7 @@
 		<DefineConstants>IL2CPP</DefineConstants>
 	</PropertyGroup>
 
-	<ItemGroup Condition="'$(TargetFramework)'=='net35'">
+	<ItemGroup Condition="'$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471'">
 		<ProjectReference Include="..\UnityEngine\UnityEngine.csproj" />
 	</ItemGroup>
 
@@ -107,7 +107,7 @@
 	</ItemGroup>
 
 	<!-- No idea why I need one for each -->
-	<Target Name="ILRepackNET460" AfterTargets="Build" Condition="'$(TargetFramework)'=='net6.0'">
+	<Target Name="ILRepackNET460" AfterTargets="Build" Condition="'$(TargetFramework)'=='net6.0' and '$(SkipILRepack)' != 'true'">
 		<PropertyGroup>
 			<WorkingDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)</WorkingDirectory>
 		</PropertyGroup>
@@ -118,7 +118,7 @@
 		<ILRepack OutputType="$(OutputType)" MainAssembly="$(AssemblyName).dll" OutputAssembly="$(AssemblyName).dll" InputAssemblies="@(InputAssemblies)" InternalizeExcludeAssemblies="@(InternalizeExcludeAssemblies)" WorkingDirectory="$(WorkingDirectory)" />
 	</Target>
 
-	<Target Name="ILRepackNET35" AfterTargets="Build" Condition="'$(TargetFramework)'=='net35'">
+	<Target Name="ILRepackNET35" AfterTargets="Build" Condition="('$(TargetFramework)'=='net35' or '$(TargetFramework)'=='net471') and '$(SkipILRepack)' != 'true'">
 		<PropertyGroup>
 			<WorkingDirectory>$(MSBuildThisFileDirectory)bin\$(Configuration)\$(TargetFramework)</WorkingDirectory>
 		</PropertyGroup>

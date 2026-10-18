@@ -423,6 +423,16 @@ namespace XUnity.Common.Constants
                   new Type[] { typeof( UnityAction<Scene, LoadSceneMode> ) },
                   null
                ) );
+
+         public static readonly Action<UnityAction<Scene, LoadSceneMode>> remove_sceneLoaded =
+            (Action<UnityAction<Scene, LoadSceneMode>>)ExpressionHelper.CreateTypedFastInvokeUnchecked(
+               typeof( SceneManager ).GetMethod(
+                  "remove_sceneLoaded",
+                  BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic,
+                  null,
+                  new Type[] { typeof( UnityAction<Scene, LoadSceneMode> ) },
+                  null
+               ) );
       }
 
       public static class Texture2D_Methods

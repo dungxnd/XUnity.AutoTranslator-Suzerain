@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using UnityEngine;
 using XUnity.AutoTranslator.Plugin.Core.Configuration;
@@ -14,6 +13,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
    class SpamChecker
    {
       private int[] _currentTranslationsQueuedPerSecondRollingWindow = new int[ Settings.TranslationQueueWatchWindow ];
+      private int _translationsInWindow;
       private float? _timeExceededThreshold;
       private float _translationsQueuedPerSecond;
 
@@ -47,6 +47,21 @@ namespace XUnity.AutoTranslator.Plugin.Core
       {
          PeriodicResetFrameCheck();
          ResetThresholdTimerIfRequired();
+      }
+
+      public void Reset()
+      {
+         Array.Clear( _currentTranslationsQueuedPerSecondRollingWindow, 0, _currentTranslationsQueuedPerSecondRollingWindow.Length );
+         _translationsInWindow = 0;
+         _translationsQueuedPerSecond = 0;
+         _timeExceededThreshold = null;
+         _consecutiveFramesTranslated = 0;
+         _consecutiveSecondsTranslated = 0;
+         _concurrentStaggers = 0;
+         _frameForLastQueuedTranslation = -1;
+         _secondForQueuedTranslation = -1;
+         _lastStaggerCheckFrame = -1;
+         Array.Clear( _previouslyQueuedText, 0, _previouslyQueuedText.Length );
       }
 
       private void CheckConsecutiveSeconds( TranslationEndpointManager endpoint )
@@ -184,12 +199,13 @@ namespace XUnity.AutoTranslator.Plugin.Core
          var newIdx = ( (int)time ) % Settings.TranslationQueueWatchWindow;
          if( previousIdx != newIdx )
          {
+            _translationsInWindow -= _currentTranslationsQueuedPerSecondRollingWindow[ newIdx ];
             _currentTranslationsQueuedPerSecondRollingWindow[ newIdx ] = 0;
          }
          _currentTranslationsQueuedPerSecondRollingWindow[ newIdx ]++;
+         _translationsInWindow++;
 
-         var translationsInWindow = _currentTranslationsQueuedPerSecondRollingWindow.Sum();
-         _translationsQueuedPerSecond = (float)translationsInWindow / Settings.TranslationQueueWatchWindow;
+         _translationsQueuedPerSecond = (float)_translationsInWindow / Settings.TranslationQueueWatchWindow;
          if( _translationsQueuedPerSecond > Settings.MaxTranslationsQueuedPerSecond )
          {
             if( !_timeExceededThreshold.HasValue )
@@ -218,11 +234,16 @@ namespace XUnity.AutoTranslator.Plugin.Core
          var newIdx = ( (int)time ) % Settings.TranslationQueueWatchWindow;
          if( previousIdx != newIdx )
          {
+            _translationsInWindow -= _currentTranslationsQueuedPerSecondRollingWindow[ newIdx ];
             _currentTranslationsQueuedPerSecondRollingWindow[ newIdx ] = 0;
          }
 
-         var translationsInWindow = _currentTranslationsQueuedPerSecondRollingWindow.Sum();
-         _translationsQueuedPerSecond = (float)translationsInWindow / Settings.TranslationQueueWatchWindow;
+         if( _translationsInWindow < 0 )
+         {
+            _translationsInWindow = 0;
+         }
+
+         _translationsQueuedPerSecond = (float)_translationsInWindow / Settings.TranslationQueueWatchWindow;
 
          if( _translationsQueuedPerSecond <= Settings.MaxTranslationsQueuedPerSecond )
          {

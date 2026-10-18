@@ -183,7 +183,10 @@ namespace XUnity.AutoTranslator.Plugin.Core.Endpoints.ExtProtocol
             _failed = true;
             _initializing = false;
 
-            XuaLogger.AutoTranslator.Error( e, "Error occurred while reading standard output from external process." );
+            if( !_disposed )
+            {
+               XuaLogger.AutoTranslator.Error( e, "Error occurred while reading standard output from external process." );
+            }
          }
       }
 
@@ -382,12 +385,43 @@ namespace XUnity.AutoTranslator.Plugin.Core.Endpoints.ExtProtocol
          {
             if( disposing )
             {
+               _disposed = true;
+
                if( _process != null )
                {
-                  //_process.Kill();
+                  try
+                  {
+                     if( _process.StartInfo.RedirectStandardInput )
+                     {
+                        _process.StandardInput.Close();
+                     }
+                  }
+                  catch( Exception )
+                  {
+                     // The process may already have exited.
+                  }
+
+                  try
+                  {
+                     if( !_process.HasExited )
+                     {
+                        _process.Kill();
+                     }
+                  }
+                  catch( Exception )
+                  {
+                     // Killing is best-effort; disposing below releases the handles.
+                  }
+
                   _process.Dispose();
-                  _thread.Abort();
+                  _process = null;
                }
+
+               if( _thread != null && _thread != Thread.CurrentThread && _thread.IsAlive )
+               {
+                  _thread.Join( 1000 );
+               }
+               _thread = null;
             }
 
             _disposed = true;

@@ -570,7 +570,21 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
                var endTime = Time.realtimeSinceStartup;
                XuaLogger.AutoTranslator.Info( $"Finished texture lookup (took {Math.Round( endTime - startTime, 2 )} seconds)" );
+
+               UnloadUnusedAssets();
             }
+         }
+      }
+
+      private static void UnloadUnusedAssets()
+      {
+         try
+         {
+            Resources.UnloadUnusedAssets();
+         }
+         catch( Exception e )
+         {
+            XuaLogger.AutoTranslator.Warn( e, "An error occurred while unloading unused assets." );
          }
       }
 
@@ -586,27 +600,37 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
          if( reload )
          {
-            var dict = new Dictionary<string, DirectoryInfo>( StringComparer.OrdinalIgnoreCase );
+            var activeDirectories = new Dictionary<string, DirectoryInfo>( StringComparer.OrdinalIgnoreCase );
             var path = Path.Combine( Settings.TranslationsPath, "plugins" );
             var directory = new DirectoryInfo( path );
             if( directory.Exists )
             {
                foreach( var dir in directory.GetDirectories() )
                {
-                  dict.Add( dir.Name, dir );
+                  activeDirectories.Add( dir.Name, dir );
                }
+            }
+
+            // Evict caches whose plugin translation folder no longer exists.
+            foreach( var staleCacheName in PluginTextCaches.Keys.Where( x => !activeDirectories.ContainsKey( x ) ).ToList() )
+            {
+               PluginTextCaches[ staleCacheName ].Dispose();
+               PluginTextCaches.Remove( staleCacheName );
             }
 
             foreach( var pluginCache in PluginTextCaches )
             {
                pluginCache.Value.LoadTranslationFiles();
-               dict.Remove( pluginCache.Key );
             }
 
             // we need to hook any newly created folders
-            foreach( var kvp in dict )
+            foreach( var kvp in activeDirectories )
             {
                var assemblyName = kvp.Value.Name;
+               if( PluginTextCaches.ContainsKey( assemblyName ) )
+               {
+                  continue;
+               }
 
                var cache = new TextTranslationCache( kvp.Value );
                PluginTextCaches.Add( assemblyName, cache );
@@ -2873,7 +2897,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
             if( _translationReloadRequest )
             {
                _translationReloadRequest = false;
-               ReloadTranslations();
+               ReloadTranslations( false );
             }
 
             // perform this check every 100 frames!
@@ -2996,6 +3020,14 @@ namespace XUnity.AutoTranslator.Plugin.Core
          foreach( var endpoint in endpoints )
          {
             endpoint.ConsecutiveErrors = 0;
+         }
+
+         if( Settings.IsShutdown )
+         {
+            Settings.IsShutdown = false;
+            Settings.TranslationCount = 0;
+            SpamChecker?.Reset();
+            XuaLogger.AutoTranslator.Info( "Cleared the plugin shutdown state." );
          }
 
          XuaLogger.AutoTranslator.Info( "Rebooted Auto Translator." );
@@ -3240,9 +3272,17 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void ReloadTranslations()
       {
+         ReloadTranslations( true );
+      }
+
+      private void ReloadTranslations( bool prune )
+      {
          try
          {
-            TextCache.PruneMainTranslationFile();
+            if( prune )
+            {
+               TextCache.PruneMainTranslationFile();
+            }
 
             LoadTranslations( true );
 
@@ -3343,6 +3383,8 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   ExtensionDataHelper.Remove( ui );
                }
             }
+
+            UnloadUnusedAssets();
          }
          catch( Exception e )
          {
@@ -3671,7 +3713,21 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
          try
          {
-            TextCache.Dispose();
+            TranslationScopeHelper.UnregisterSceneLoadCallback();
+         }
+         catch( Exception e )
+         {
+            XuaLogger.AutoTranslator.Error( e, "An error occurred while unregistering the scene load callback." );
+         }
+
+         try
+         {
+            if( TextCache != null )
+            {
+               TextCache.TextTranslationFileChanged -= TextCache_TextTranslationFileChanged;
+               TextCache.Dispose();
+               TextCache = null;
+            }
          }
          catch( Exception e )
          {
@@ -3680,23 +3736,65 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
          try
          {
-            TextureCache.Dispose();
+            foreach( var pluginCache in PluginTextCaches.Values )
+            {
+               pluginCache.Dispose();
+            }
+            PluginTextCaches.Clear();
+         }
+         catch( Exception e )
+         {
+            XuaLogger.AutoTranslator.Error( e, "An error occurred while disposing plugin translation text caches." );
+         }
+
+         try
+         {
+            if( TextureCache != null )
+            {
+               TextureCache.TextureTranslationFileChanged -= TextureCache_TextureTranslationFileChanged;
+               TextureCache.Dispose();
+               TextureCache = null;
+            }
          }
          catch( Exception e )
          {
             XuaLogger.AutoTranslator.Error( e, "An error occurred while disposing translation texture cache." );
          }
 
-         foreach( var ce in TranslationManager.AllEndpoints )
+         try
          {
-            try
+            if( TranslationManager != null )
             {
-               if( ce.Endpoint is IDisposable disposable ) disposable.Dispose();
+               TranslationManager.JobCompleted -= OnJobCompleted;
+               TranslationManager.JobFailed -= OnJobFailed;
+
+               foreach( var ce in TranslationManager.AllEndpoints )
+               {
+                  try
+                  {
+                     if( ce.Endpoint is IDisposable disposable ) disposable.Dispose();
+                  }
+                  catch( Exception e )
+                  {
+                     XuaLogger.AutoTranslator.Error( e, "An error occurred while disposing endpoint." );
+                  }
+               }
             }
-            catch( Exception e )
-            {
-               XuaLogger.AutoTranslator.Error( e, "An error occurred while disposing endpoint." );
-            }
+         }
+         catch( Exception e )
+         {
+            XuaLogger.AutoTranslator.Error( e, "An error occurred while disposing translation endpoints." );
+         }
+
+         CachedKeys.Clear();
+         _shouldIgnore.Clear();
+         _textsToCopyToClipboard.Clear();
+         _textsToCopyToClipboardOrdered.Clear();
+         _immediatelyTranslating.Clear();
+
+         if( ReferenceEquals( Current, this ) )
+         {
+            Current = null;
          }
       }
    }
