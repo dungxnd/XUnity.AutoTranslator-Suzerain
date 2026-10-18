@@ -389,13 +389,13 @@ namespace XUnity.AutoTranslator.Plugin.Core
             },
             new List<LabelViewModel>
             {
-               new LabelViewModel( "Version: ", () => PluginData.Version ),
-               new LabelViewModel( "Plugin status: ", () => Settings.IsShutdown ? "Shutdown" : "Running" ),
-               new LabelViewModel( "Translator status: ", GetCurrentEndpointStatus ),
-               new LabelViewModel( "Running translations: ", () => $"{(TranslationManager.OngoingTranslations)}" ),
-               new LabelViewModel( "Served translations: ", () => $"{Settings.TranslationCount} / {Settings.MaxTranslationsBeforeShutdown}" ),
-               new LabelViewModel( "Queued translations: ", () => $"{(TranslationManager.UnstartedTranslations)} / {Settings.MaxUnstartedJobs}" ),
-               new LabelViewModel( "Error'ed translations: ", () => $"{TranslationManager.CurrentEndpoint?.ConsecutiveErrors ?? 0} / {Settings.MaxErrors}"  ),
+                new LabelViewModel( "Version", () => PluginData.Version ),
+                new LabelViewModel( "Plugin", () => Settings.IsShutdown ? "Shutdown" : "Running" ),
+                new LabelViewModel( "Translator", GetCurrentEndpointStatus ),
+                new LabelViewModel( "Running", () => $"{(TranslationManager.OngoingTranslations)}" ),
+                new LabelViewModel( "Served", () => $"{Settings.TranslationCount} / {Settings.MaxTranslationsBeforeShutdown}" ),
+                new LabelViewModel( "Queued", () => $"{(TranslationManager.UnstartedTranslations)} / {Settings.MaxUnstartedJobs}" ),
+                new LabelViewModel( "Errors", () => $"{TranslationManager.CurrentEndpoint?.ConsecutiveErrors ?? 0} / {Settings.MaxErrors}" ),
             } );
       }
 
@@ -2759,6 +2759,25 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void HandleInput()
       {
+         if( UnityInput.Current.GetKeyDown( KeyCode.Escape ) )
+         {
+            if( TranslationAggregatorOptionsWindow != null && TranslationAggregatorOptionsWindow.IsShown )
+            {
+               TranslationAggregatorOptionsWindow.IsShown = false;
+               return;
+            }
+            if( TranslationAggregatorWindow != null && TranslationAggregatorWindow.IsShown )
+            {
+               TranslationAggregatorWindow.IsShown = false;
+               return;
+            }
+            if( MainWindow != null && MainWindow.IsShown )
+            {
+               MainWindow.IsShown = false;
+               return;
+            }
+         }
+
          var isAltPressed = UnityInput.Current.GetKey( KeyCode.LeftAlt ) || UnityInput.Current.GetKey( KeyCode.RightAlt );
          if( isAltPressed )
          {
@@ -2892,6 +2911,22 @@ namespace XUnity.AutoTranslator.Plugin.Core
          // initialize ui
          InitializeGUI();
 
+         var uiScale = GUIUtil.ResolveUIScale();
+         GUIUtil.UIScale = uiScale;
+
+         var previousMatrix = Matrix4x4.identity;
+         var hasMatrix = false;
+         try
+         {
+            previousMatrix = GUI.matrix;
+            hasMatrix = true;
+            GUI.matrix = Matrix4x4.TRS( Vector3.zero, Quaternion.identity, new Vector3( uiScale, uiScale, 1f ) );
+         }
+         catch
+         {
+            GUIUtil.UIScale = 1f;
+         }
+
          try
          {
             DisableAutoTranslator();
@@ -2940,6 +2975,17 @@ namespace XUnity.AutoTranslator.Plugin.Core
          }
          finally
          {
+            if( hasMatrix )
+            {
+               try
+               {
+                  GUI.matrix = previousMatrix;
+               }
+               catch
+               {
+               }
+            }
+
             EnableAutoTranslator();
          }
       }

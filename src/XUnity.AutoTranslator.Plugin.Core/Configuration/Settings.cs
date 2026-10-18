@@ -86,6 +86,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Configuration
       public static string TexturesPath;
       public static string TranslatorsPath;
       public static bool EnableIMGUI;
+      public static string UIScale;
       public static bool EnableUGUI;
       public static bool EnableUIElements;
       public static bool EnableNGUI;
@@ -230,6 +231,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Configuration
             PostprocessorsFile = PluginEnvironment.Current.Preferences.GetOrDefault( "Files", "PostprocessorsFile", Path.Combine( "Translation", Path.Combine( "{Lang}", Path.Combine( "Text", "_Postprocessors.txt" ) ) ) );
 
             EnableIMGUI = PluginEnvironment.Current.Preferences.GetOrDefault( "TextFrameworks", "EnableIMGUI", false );
+            UIScale = PluginEnvironment.Current.Preferences.GetOrDefault( "UI", "Scale", "Auto" );
             EnableUGUI = PluginEnvironment.Current.Preferences.GetOrDefault( "TextFrameworks", "EnableUGUI", true );
             EnableUIElements = PluginEnvironment.Current.Preferences.GetOrDefault( "TextFrameworks", "EnableUIElements", true );
             EnableNGUI = PluginEnvironment.Current.Preferences.GetOrDefault( "TextFrameworks", "EnableNGUI", true );
@@ -426,6 +428,13 @@ namespace XUnity.AutoTranslator.Plugin.Core.Configuration
          Height = height;
          PluginEnvironment.Current.Preferences[ "TranslationAggregator" ][ "Width" ].Value = Width.ToString( CultureInfo.InvariantCulture );
          PluginEnvironment.Current.Preferences[ "TranslationAggregator" ][ "Height" ].Value = Height.ToString( CultureInfo.InvariantCulture );
+         Save();
+      }
+
+      public static void SetUIScale( string scale )
+      {
+         UIScale = string.IsNullOrEmpty( scale ) ? "Auto" : scale;
+         PluginEnvironment.Current.Preferences[ "UI" ][ "Scale" ].Value = UIScale;
          Save();
       }
 

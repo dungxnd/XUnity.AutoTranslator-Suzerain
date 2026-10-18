@@ -258,3 +258,5 @@ dist/
 
 # Game DLL ignores
 /libs/Koikatsu
+
+.commandcode

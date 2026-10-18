@@ -172,12 +172,72 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
       }
 #endif
 
+      private static readonly string[] UIFontCandidates =
+      {
+         "Microsoft YaHei UI",
+         "Microsoft YaHei",
+         "Noto Sans CJK SC",
+         "Noto Sans SC",
+         "PingFang SC",
+         "Hiragino Sans",
+         "Yu Gothic UI",
+         "Meiryo",
+         "Malgun Gothic",
+         "Segoe UI",
+         "Noto Sans",
+         "DejaVu Sans",
+         "Liberation Sans",
+         "Helvetica Neue",
+         "Arial"
+      };
+
       public static Font GetTextFont( int size )
       {
          var font = Font.CreateDynamicFontFromOSFont( Settings.OverrideFont, size );
          GameObject.DontDestroyOnLoad( font );
 
          return font;
+      }
+
+      public static Font GetUIFont( int size )
+      {
+         if( !string.IsNullOrEmpty( Settings.OverrideFont ) )
+         {
+            var overrideFont = TryCreateFont( Settings.OverrideFont, size );
+            if( overrideFont != null )
+            {
+               return overrideFont;
+            }
+         }
+
+         for( int i = 0; i < UIFontCandidates.Length; i++ )
+         {
+            var font = TryCreateFont( UIFontCandidates[ i ], size );
+            if( font != null )
+            {
+               return font;
+            }
+         }
+
+         return GetTextFont( size );
+      }
+
+      private static Font TryCreateFont( string fontName, int size )
+      {
+         try
+         {
+            var font = Font.CreateDynamicFontFromOSFont( fontName, size );
+            if( font != null )
+            {
+               GameObject.DontDestroyOnLoad( font );
+               return font;
+            }
+         }
+         catch
+         {
+         }
+
+         return null;
       }
 
       public static string[] GetOSInstalledFontNames()

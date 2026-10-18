@@ -1,4 +1,11 @@
-﻿### 5.6.1
+﻿### 5.6.4
+* FEATURE - Added automatic UI scaling, a dark themed IMGUI interface, CJK-capable font selection, and a UI Scale control in Aggregator Options
+* FEATURE - Added Esc-to-close, window bring-to-front, copy confirmation toasts, content-driven main window sizing, and screen-aware aggregator panel sizing
+* BUG FIX - Fixed IL2CPP hooks being forced through the managed MonoMod path when ForceMonoModHooks was enabled; Harmony 2.x is now preferred
+* BUG FIX - Suppressed IL2CPP type-resolution warnings for UnityEngine.WWW and UnityEngine.GUI+ToolbarButtonSize
+* BUG FIX - Fixed status column overlap, dormant command-button row overflow, dropdown dismissal while scrolling, and translation view index crashes
+
+### 5.6.1
 * BUG FIX - Resolve hotkey unresponsiveness and GUI unstripping errors in IL2CPP (#834)
 * BUG FIX - Resolve font asset bundle loading failure in IL2CPP (#831)
 

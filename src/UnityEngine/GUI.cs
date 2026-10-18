@@ -168,6 +168,8 @@ namespace UnityEngine
 
       private static GUISkin s_Skin;
 
+      private static Matrix4x4 s_Matrix = Matrix4x4.identity;
+
       internal static Rect s_ToolTipRect;
 
       internal static int scrollTroughSide
@@ -194,7 +196,17 @@ namespace UnityEngine
          }
       }
 
-      public static Matrix4x4 matrix => throw new NotImplementedException();
+      public static Matrix4x4 matrix
+      {
+         get
+         {
+            return s_Matrix;
+         }
+         set
+         {
+            s_Matrix = value;
+         }
+      }
 
       public static string tooltip
       {

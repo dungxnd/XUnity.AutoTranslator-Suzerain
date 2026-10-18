@@ -21,14 +21,17 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       private float _x;
       private float _y;
       private float _width;
+      private float _maxY;
       private bool _isShown;
+      private Rect _popupRect;
       private Vector2 _scrollPosition;
 
-      public DropdownGUI( float x, float y, float width, DropdownViewModel<TDropdownOptionViewModel, TSelection> viewModel )
+      public DropdownGUI( float x, float y, float width, float maxY, DropdownViewModel<TDropdownOptionViewModel, TSelection> viewModel )
       {
          _x = x;
          _y = y;
          _width = width;
+         _maxY = maxY;
          _noSelection = GUIUtil.CreateContent( viewModel.NoSelection, viewModel.NoSelectionTooltip );
          _unselect = GUIUtil.CreateContent( viewModel.Unselect, viewModel.UnselectTooltip );
 
@@ -43,7 +46,8 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
          {
             GUI.enabled = enabled;
 
-            bool clicked = GUI.Button( GUIUtil.R( _x, _y, _width, GUIUtil.RowHeight ), _viewModel.CurrentSelection?.Text ?? _noSelection, _isShown ? GUIUtil.NoMarginButtonPressedStyle : GUI.skin.button );
+            var headerRect = GUIUtil.R( _x, _y, _width, GUIUtil.RowHeight );
+            bool clicked = GUI.Button( headerRect, _viewModel.CurrentSelection?.Text ?? _noSelection, _isShown ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle );
             if( clicked )
             {
                _isShown = !_isShown;
@@ -56,10 +60,14 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
 
             if( _isShown )
             {
-               ShowDropdown( _x, _y + GUIUtil.RowHeight, _width, GUI.skin.button );
+               ShowDropdown( _x, _y + GUIUtil.RowHeight, _width );
             }
 
-            if( !clicked && Event.current.isMouse )
+            var mousePosition = GUIUtil.ScreenToGuiPoint( new Vector2( UnityInput.Current.mousePosition.x, UnityInput.Current.mousePosition.y ) );
+            if( !clicked
+               && Event.current.type == EventType.MouseDown
+               && !headerRect.Contains( mousePosition )
+               && !_popupRect.Contains( mousePosition ) )
             {
                _isShown = false;
             }
@@ -74,11 +82,18 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
 
       private bool _supportsScrollView = true;
 
-      private void ShowDropdown( float x, float y, float width, GUIStyle buttonStyle )
+      private void ShowDropdown( float x, float y, float width )
       {
-         var rect = GUIUtil.R( x, y, width, _supportsScrollView && _viewModel.Options.Count * GUIUtil.RowHeight > MaxHeight ? MaxHeight : _viewModel.Options.Count * GUIUtil.RowHeight );
+         var popupHeight = _supportsScrollView && _viewModel.Options.Count * GUIUtil.RowHeight > MaxHeight ? MaxHeight : _viewModel.Options.Count * GUIUtil.RowHeight;
+         if( _maxY > 0f && y + popupHeight > _maxY )
+         {
+            y = Mathf.Max( 0f, _y - popupHeight );
+         }
 
-         GUILayout.BeginArea( rect, GUIUtil.NoSpacingBoxStyle );
+         var rect = GUIUtil.R( x, y, width, popupHeight );
+         _popupRect = rect;
+
+         GUILayout.BeginArea( rect, UITheme.NoSpacingBoxStyle );
          try
          {
             if( _supportsScrollView )
@@ -92,7 +107,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
             _supportsScrollView = false;
          }
 
-         var style = _viewModel.CurrentSelection == null ? GUIUtil.NoMarginButtonPressedStyle : GUIUtil.NoMarginButtonStyle;
+         var style = _viewModel.CurrentSelection == null ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle;
          if( GUILayout.Button( _unselect, style, ArrayHelper.Null<GUILayoutOption>() ) )
          {
             _viewModel.Select( null );
@@ -101,7 +116,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
 
          foreach( var option in _viewModel.Options )
          {
-            style = option.IsSelected() ? GUIUtil.NoMarginButtonPressedStyle : GUIUtil.NoMarginButtonStyle;
+            style = option.IsSelected() ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle;
             GUI.enabled = option?.IsEnabled() ?? true;
             if( GUILayout.Button( option.Text, style, ArrayHelper.Null<GUILayoutOption>() ) )
             {
