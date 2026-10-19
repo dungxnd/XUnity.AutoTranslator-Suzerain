@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="YamlDotNet" Version="5.0.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\Translators\LlmTranslators\Behavior\*.cs" Link="Behavior\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Translators\LlmTranslators\Config\*.cs" Link="Config\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Translators\LlmTranslators\*TranslatorEndpoint.cs" Link="Endpoints\%(Filename)%(Extension)" />
+    <Compile Include="..\..\src\Translators\LlmTranslators\GlobalUsings.cs" Link="GlobalUsings.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\src\Translators\LlmTranslators\SampleConfig\LLMConfig.yaml" Link="SampleConfig\LLMConfig.yaml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="XUnity.AutoTranslator.Plugin.Core">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.AutoTranslator.Plugin.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="XUnity.Common">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

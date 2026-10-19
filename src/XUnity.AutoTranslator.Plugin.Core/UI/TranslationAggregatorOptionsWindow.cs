@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using UnityEngine;
@@ -79,100 +80,127 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
                IsShown = false;
             }
 
-            GUILayout.Space( 22f );
-            GUILayout.Label( "AVAILABLE TRANSLATORS", UITheme.HeaderStyle, ArrayHelper.Null<GUILayoutOption>() );
+            float posx = GUIUtil.ComponentSpacing;
+            float posy = GUIUtil.WindowTitleClearance + GUIUtil.ComponentSpacing;
+            float contentWidth = WindowWidth - ( 2 * GUIUtil.ComponentSpacing );
 
-            // GROUP
+            GUI.Label( GUIUtil.R( posx, posy, contentWidth, GUIUtil.LabelHeight ), "AVAILABLE TRANSLATORS", UITheme.HeaderStyle );
+            posy += GUIUtil.LabelHeight + GUIUtil.HalfComponentSpacing;
+
+            var listRect = GUIUtil.R( posx, posy, contentWidth, 250f );
+            GUI.Box( listRect, GUIUtil.none, UITheme.TextAreaStyle );
+
+            var padding = UITheme.TextAreaStyle.padding;
+            var viewport = GUIUtil.R(
+               listRect.x + padding.left,
+               listRect.y + padding.top,
+               listRect.width - padding.horizontal,
+               listRect.height - padding.vertical );
+
+            var contentHeight = Mathf.Max( 1f, _toggles.Count * ( GUIUtil.RowHeight + 2f ) );
+            var scrollbarWidth = GUIUtil.GetScrollbarWidth( viewport.height, contentHeight );
+            var itemWidth = viewport.width - scrollbarWidth;
+
             if( _isScrollViewSupported )
             {
                bool hasStartedScrollView = false;
                try
                {
-                  _scrollPosition = GUILayout.BeginScrollView( _scrollPosition, UITheme.TextAreaStyle, GUILayout.Height( 250 ) );
+                  _scrollPosition = GUIUtil.BeginVerticalScrollView( viewport, _scrollPosition, contentHeight, out itemWidth );
                   hasStartedScrollView = true;
 
-                  foreach( var vm in _toggles )
-                  {
-                     var previousEnabled = GUI.enabled;
-
-                     GUI.enabled = vm.Enabled;
-                     var previousValue = vm.IsToggled();
-                     var newValue = GUILayout.Toggle( previousValue, vm.Text, UITheme.ToggleStyle, ArrayHelper.Null<GUILayoutOption>() );
-                     if( previousValue != newValue )
-                     {
-                        vm.OnToggled();
-                     }
-
-                     GUI.enabled = previousEnabled;
-                  }
+                  DrawTranslatorToggles( itemWidth );
                }
-               catch( System.Exception e )
+               catch( NotSupportedException e )
                {
-                  if ( e is System.NotSupportedException )
-                  {
-                     XUnity.Common.Logging.XuaLogger.AutoTranslator.Warn( e, "An error occurred while calling GUILayout.BeginScrollView. Fallback mode will be used." );
-                     _isScrollViewSupported = false;
-                  }
-                  else throw;
+                  XUnity.Common.Logging.XuaLogger.AutoTranslator.Warn( e, "An options scroll view could not be created. Fallback mode will be used." );
+                  _isScrollViewSupported = false;
                }
                finally
                {
-                  if( hasStartedScrollView ) GUILayout.EndScrollView();
+                  if( hasStartedScrollView )
+                  {
+                     GUIUtil.EndVerticalScrollView( viewport, _scrollPosition, contentHeight );
+                  }
                }
             }
 
             if( !_isScrollViewSupported )
             {
-               GUILayout.BeginVertical( UITheme.TextAreaStyle, ArrayHelper.Null<GUILayoutOption>() );
-
-               foreach( var vm in _toggles )
-               {
-                  var previousEnabled = GUI.enabled;
-
-                  GUI.enabled = vm.Enabled;
-                  var previousValue = vm.IsToggled();
-                  var newValue = GUILayout.Toggle( previousValue, vm.Text, UITheme.ToggleStyle, ArrayHelper.Null<GUILayoutOption>() );
-                  if( previousValue != newValue )
-                  {
-                     vm.OnToggled();
-                  }
-
-                  GUI.enabled = previousEnabled;
-               }
-
-               GUILayout.EndVertical();
+               GUILayout.BeginArea( viewport );
+               DrawTranslatorToggles( viewport.width );
+               GUILayout.EndArea();
             }
 
-            GUILayout.BeginHorizontal( ArrayHelper.Null<GUILayoutOption>() );
-            GUILayout.Label( "Height", UITheme.LabelStyle, ArrayHelper.Null<GUILayoutOption>() );
-            _viewModel.Height = Mathf.Round( GUILayout.HorizontalSlider( _viewModel.Height, 50, 300, UITheme.HorizontalSliderStyle, UITheme.HorizontalSliderThumbStyle, ArrayHelper.Null<GUILayoutOption>() ) );
-            GUILayout.EndHorizontal();
+            posy += listRect.height + GUIUtil.ComponentSpacing;
 
-            GUILayout.BeginHorizontal( ArrayHelper.Null<GUILayoutOption>() );
-            GUILayout.Label( "Width", UITheme.LabelStyle, ArrayHelper.Null<GUILayoutOption>() );
-            _viewModel.Width = Mathf.Round( GUILayout.HorizontalSlider( _viewModel.Width, 200, 1000, UITheme.HorizontalSliderStyle, UITheme.HorizontalSliderThumbStyle, ArrayHelper.Null<GUILayoutOption>() ) );
-            GUILayout.EndHorizontal();
+            GUI.Label( GUIUtil.R( posx, posy, 50f, GUIUtil.RowHeight ), "Height", UITheme.LabelStyle );
+            _viewModel.Height = Mathf.Round( GUI.HorizontalSlider(
+               GUIUtil.R( posx + 55f, posy + 4f, contentWidth - 55f, 16f ),
+               _viewModel.Height,
+               50f,
+               300f,
+               UITheme.HorizontalSliderStyle,
+               UITheme.HorizontalSliderThumbStyle ) );
+            posy += GUIUtil.RowHeight + GUIUtil.HalfComponentSpacing;
 
-            GUILayout.Space( 4f );
-            GUILayout.BeginHorizontal( ArrayHelper.Null<GUILayoutOption>() );
-            if( GUILayout.Button( "-", UITheme.SmallButtonStyle, GUILayout.Width( 28 ) ) )
+            GUI.Label( GUIUtil.R( posx, posy, 50f, GUIUtil.RowHeight ), "Width", UITheme.LabelStyle );
+            _viewModel.Width = Mathf.Round( GUI.HorizontalSlider(
+               GUIUtil.R( posx + 55f, posy + 4f, contentWidth - 55f, 16f ),
+               _viewModel.Width,
+               200f,
+               1000f,
+               UITheme.HorizontalSliderStyle,
+               UITheme.HorizontalSliderThumbStyle ) );
+            posy += GUIUtil.RowHeight + GUIUtil.HalfComponentSpacing;
+
+            if( GUI.Button( GUIUtil.R( posx, posy, 28f, GUIUtil.RowHeight ), "-", UITheme.SmallButtonStyle ) )
             {
                ChangeUIScale( -0.1f );
             }
-            GUILayout.Label( "UI Scale: " + GUIUtil.UIScale.ToString( "0.00", CultureInfo.InvariantCulture ) + "x", UITheme.LabelStyle, GUILayout.Width( 120 ) );
-            if( GUILayout.Button( "+", UITheme.SmallButtonStyle, GUILayout.Width( 28 ) ) )
+
+            GUI.Label(
+               GUIUtil.R( posx + 32f, posy, 120f, GUIUtil.RowHeight ),
+               "UI Scale: " + GUIUtil.UIScale.ToString( "0.00", CultureInfo.InvariantCulture ) + "x",
+               UITheme.LabelStyle );
+
+            if( GUI.Button( GUIUtil.R( posx + 156f, posy, 28f, GUIUtil.RowHeight ), "+", UITheme.SmallButtonStyle ) )
             {
                ChangeUIScale( 0.1f );
             }
-            if( GUILayout.Button( "Auto", UITheme.SmallButtonStyle, GUILayout.Width( 48 ) ) )
+
+            if( GUI.Button( GUIUtil.R( posx + 188f, posy, 48f, GUIUtil.RowHeight ), "Auto", UITheme.SmallButtonStyle ) )
             {
                Settings.SetUIScale( "Auto" );
             }
-            GUILayout.EndHorizontal();
          }
          finally
          {
             AutoTranslationPlugin.Current.EnableAutoTranslator();
+         }
+      }
+
+      private void DrawTranslatorToggles( float itemWidth )
+      {
+         float y = 0f;
+         foreach( var vm in _toggles )
+         {
+            var previousEnabled = GUI.enabled;
+
+            GUI.enabled = vm.Enabled;
+            var previousValue = vm.IsToggled();
+            var newValue = GUI.Toggle(
+               GUIUtil.R( 0f, y, itemWidth, GUIUtil.RowHeight ),
+               previousValue,
+               vm.Text,
+               UITheme.ToggleStyle );
+            if( previousValue != newValue )
+            {
+               vm.OnToggled();
+            }
+
+            GUI.enabled = previousEnabled;
+            y += GUIUtil.RowHeight + 2f;
          }
       }
 

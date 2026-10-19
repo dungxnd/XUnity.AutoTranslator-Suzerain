@@ -1,12 +1,12 @@
 ﻿# XUnity Auto Translator — Suzerain Fork
 
-> **Fork version: 6.0.0**
+> **Fork version: 6.1.0**
 >
 > A user-focused fork of [XUnity.AutoTranslator](https://github.com/bbepis/XUnity.AutoTranslator), built for readable UI at any resolution, safer translation files, and fewer “restart the game” moments.
 >
 > **What feels different**
 > * **The UI finally scales.** Automatic scaling from 720p to 4K, ultrawide, and Steam Deck, plus a manual `UI Scale` control. Windows clamp to the screen instead of running off the edge.
-> * **A cleaner interface.** Dark flat theme, consistent spacing, CJK-capable UI font, readable hover/pressed/disabled states, title-bar dragging, and copy-success toasts.
+> * **A cleaner interface.** Dark flat theme, consistent spacing, CJK-capable UI font, slim themed scrollbars with no horizontal bar, restyled dropdown popups, readable hover/pressed/disabled states, title-bar dragging, and copy-success toasts.
 > * **Less window fighting.** Cascaded default positions, a content-sized main window, aggregator panels that fit the screen with their own scroll areas, dropdowns that no longer close while you scroll them, `Esc` to close the topmost window, and click-to-front behavior.
 > * **Faster, safer translation files.** Large files load faster and reloads are incremental, so edits no longer trigger a full reparse freeze. Pruning keeps comments, directives, and regex lines; URLs and `//` no longer corrupt after save/reload; rewrites are atomic and backed up.
 > * **Wrapper-aware translation reuse.** Quotes, brackets, angle brackets, and numbered/bulleted prefixes reuse the cached core translation and re-apply the wrapper, so `1. Hello brother`, `Hello brother`, `"Hello brother"`, and `<Hello brother>` no longer create duplicate lines or re-translations.
@@ -15,7 +15,7 @@
 >
 > **Compatibility:** managed games (BepInEx 5, MelonLoader, ReiPatcher, IPA, UnityInjector) and IL2CPP games (BepInEx 6, MelonLoader IL2CPP). A modern managed build is available for newer Unity runtimes; see [target framework support](docs/target-framework-support.md).
 >
-> **Install for IL2CPP games (including Suzerain):** use a **BepInEx 6 IL2CPP nightly** from [builds.bepinex.dev/projects/bepinex_be](https://builds.bepinex.dev/projects/bepinex_be). BepInEx 5.x does not support IL2CPP.
+> **Install for IL2CPP games (including Suzerain):** use a **BepInEx 6 IL2CPP nightly** from [builds.bepinex.dev/projects/bepinex_be](https://builds.bepinex.dev/projects/bepinex_be).
 >
 > Upstream: [bbepis/XUnity.AutoTranslator](https://github.com/bbepis/XUnity.AutoTranslator) · Fork releases: [../../releases](../../releases) · Developer guide: [docs/developer-guide.md](docs/developer-guide.md)
 >
@@ -262,6 +262,11 @@ Here's a list of translators supported out of the box:
    * Example Response (only body): Hello
    * Known implementations that can be used with CustomTranslate:
      * ezTrans: https://github.com/HelloKS/ezTransWeb
+ * Built-in LLM chat-completion endpoints. All three share one `LLMConfig.yaml` configuration file for prompts, glossary, batching, and model parameters, with character-budgeted batching, long-text chunking, live config reloads, a temperature readout, and an **Advanced** editor that writes back to the same file.
+   * OpenAiTranslate targets OpenAI or any OpenAI-compatible chat-completions server. Set `apiKeyRequired: true` when the server requires a bearer token.
+   * OllamaTranslate targets Ollama's `/api/chat` endpoint.
+   * LmStudioTranslate targets LM Studio's OpenAI-compatible `/v1/chat/completions` endpoint.
+   * See [docs/llm-translators.md](docs/llm-translators.md) for the shared YAML configuration.
 
 *NOTE: If you use any of the online translators that does not require some form of authentication, that this plugin may break at any time.*
 
@@ -270,9 +275,7 @@ Since 3.0.0, you can also implement your own translators. To do so, follow the i
 Here are some third-party translation plugins that you can use with AutoTranslator:
  * [SugoiOfflineTranslatorEndpoint](https://github.com/Vin-meido/XUnity-AutoTranslator-SugoiOfflineTranslatorEndpoint), for use with a Sugoi Translator server.
    * No limitations. Remarkable quality.
- * [LlmTranslators](https://github.com/joshfreitas1984/XUnity.AutoTranslate.LlmTranslators), for use with OpenAI's LLM, and Ollama Models.
-   * OpenAI requires an APIKey, paid per tokens used. Locally hosted Ollama Models are free.
- * [AutoChatGptTranslator](https://github.com/joshfreitas1984/XUnity.AutoChatGptTranslator), for ChatGPT. Obsolete, use LlmTranslators instead.
+ * [AutoChatGptTranslator](https://github.com/joshfreitas1984/XUnity.AutoChatGptTranslator), for ChatGPT. Obsolete, use the built-in LLM translators instead.
    * Requires an APIKey, paid per tokens used.
  * [AutoLLMTranslator](https://github.com/NothingNullNull/XUnity.AutoLLMTranslator), a generic endpoint that supports many different LLM's, including Ollama models.
    * Very flexible but requires advanced manual configuration. Recommended only for advanced users.

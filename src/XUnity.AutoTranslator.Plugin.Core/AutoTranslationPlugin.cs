@@ -62,6 +62,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
       internal XuaWindow MainWindow;
       internal TranslationAggregatorWindow TranslationAggregatorWindow;
       internal TranslationAggregatorOptionsWindow TranslationAggregatorOptionsWindow;
+      internal LlmAdvancedWindow LlmAdvancedWindow;
       internal TranslationManager TranslationManager;
       internal TextTranslationCache TextCache;
       internal Dictionary<string, TextTranslationCache> PluginTextCaches = new Dictionary<string, TextTranslationCache>( StringComparer.OrdinalIgnoreCase );
@@ -327,6 +328,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                var vm = CreateTranslationAggregatorViewModel();
                TranslationAggregatorWindow = new TranslationAggregatorWindow( vm );
                TranslationAggregatorOptionsWindow = new TranslationAggregatorOptionsWindow( vm );
+               LlmAdvancedWindow = new LlmAdvancedWindow();
             }
          }
          catch( Exception e )
@@ -385,13 +387,15 @@ namespace XUnity.AutoTranslator.Plugin.Core
             {
                new ButtonViewModel( "Reboot", "<b>REBOOT PLUGIN</b>\nReboots the plugin if it has been shutdown. This only works if the plugin was shut down due to consequtive errors towards the translation endpoint.", RebootPlugin, null ),
                new ButtonViewModel( "Reload", "<b>RELOAD TRANSLATION</b>\nReloads all translation text files and texture files from disk.", ReloadTranslations, null ),
-               new ButtonViewModel( "Hook", "<b>MANUAL HOOK</b>\nTraverses the unity object tree for looking for anything that can be translated. Performs a translation if something is found.", ManualHook, null )
+               new ButtonViewModel( "Hook", "<b>MANUAL HOOK</b>\nTraverses the unity object tree for looking for anything that can be translated. Performs a translation if something is found.", ManualHook, null ),
+               new ButtonViewModel( "Advanced", "<b>ADVANCED SETTINGS</b>\nEdits LLM request settings for the selected LLM endpoint.", ToggleAdvancedSettings, () => TranslationManager.CurrentEndpoint?.Endpoint is ITranslateEndpointSettingsEditor )
             },
             new List<LabelViewModel>
             {
                 new LabelViewModel( "Version", () => PluginData.Version ),
                 new LabelViewModel( "Plugin", () => Settings.IsShutdown ? "Shutdown" : "Running" ),
                 new LabelViewModel( "Translator", GetCurrentEndpointStatus ),
+                new LabelViewModel( "Temperature", GetCurrentEndpointTemperature ),
                 new LabelViewModel( "Running", () => $"{(TranslationManager.OngoingTranslations)}" ),
                 new LabelViewModel( "Served", () => $"{Settings.TranslationCount} / {Settings.MaxTranslationsBeforeShutdown}" ),
                 new LabelViewModel( "Queued", () => $"{(TranslationManager.UnstartedTranslations)} / {Settings.MaxUnstartedJobs}" ),
@@ -404,6 +408,14 @@ namespace XUnity.AutoTranslator.Plugin.Core
          if( TranslationAggregatorWindow != null )
          {
             TranslationAggregatorWindow.IsShown = !TranslationAggregatorWindow.IsShown;
+         }
+      }
+
+      private void ToggleAdvancedSettings()
+      {
+         if( LlmAdvancedWindow != null )
+         {
+            LlmAdvancedWindow.IsShown = !LlmAdvancedWindow.IsShown;
          }
       }
 
@@ -424,6 +436,17 @@ namespace XUnity.AutoTranslator.Plugin.Core
             return "Shutdown";
          }
          return "Running";
+      }
+
+      private string GetCurrentEndpointTemperature()
+      {
+         var endpoint = TranslationManager.CurrentEndpoint?.Endpoint;
+         if( endpoint is ITranslateEndpointSettingsProvider settings
+             && settings.TryGetSetting( "Temperature", out var temperature ) )
+         {
+            return temperature;
+         }
+         return "n/a";
       }
 
       private void ValidateConfiguration()
@@ -2785,6 +2808,11 @@ namespace XUnity.AutoTranslator.Plugin.Core
       {
          if( UnityInput.Current.GetKeyDown( KeyCode.Escape ) )
          {
+            if( LlmAdvancedWindow != null && LlmAdvancedWindow.IsShown )
+            {
+               LlmAdvancedWindow.IsShown = false;
+               return;
+            }
             if( TranslationAggregatorOptionsWindow != null && TranslationAggregatorOptionsWindow.IsShown )
             {
                TranslationAggregatorOptionsWindow.IsShown = false;
@@ -2994,6 +3022,20 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   XuaLogger.AutoTranslator.Error( e, "An error occurred in Translation Aggregator Options UI. Disabling the UI." );
 
                   TranslationAggregatorOptionsWindow = null;
+               }
+            }
+
+            if( LlmAdvancedWindow != null )
+            {
+               try
+               {
+                  if( LlmAdvancedWindow.IsShown ) LlmAdvancedWindow.OnGUI();
+               }
+               catch( Exception e )
+               {
+                  XuaLogger.AutoTranslator.Error( e, "An error occurred in the LLM Advanced Settings UI. Disabling the UI." );
+
+                  LlmAdvancedWindow = null;
                }
             }
          }

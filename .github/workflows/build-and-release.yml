@@ -76,6 +76,9 @@ jobs:
       - name: Run core text pipeline tests (net8.0)
         run: dotnet test test/XUnity.AutoTranslator.Plugin.Core.TextTests/XUnity.AutoTranslator.Plugin.Core.TextTests.csproj --configuration Release --verbosity normal
 
+      - name: Run LLM translator tests
+        run: dotnet test test/XUnity.AutoTranslator.LlmTranslators.Tests/XUnity.AutoTranslator.LlmTranslators.Tests.csproj --configuration Release --no-build --no-restore --verbosity normal
+
       - name: Show release archives
         shell: pwsh
         run: Get-ChildItem dist/*.zip | Format-Table Name, Length

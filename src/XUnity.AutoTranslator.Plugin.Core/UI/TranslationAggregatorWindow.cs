@@ -249,53 +249,92 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
 
          float boxWidth = _viewModel.Width - GUIUtil.ComponentSpacing;
          float boxHeight = panelHeight - GUIUtil.LabelHeight - GUIUtil.HalfComponentSpacing;
+         var areaRect = GUIUtil.R( GUIUtil.HalfComponentSpacing, posy, boxWidth, boxHeight );
 
-         if( !_isScrollViewSupported )
-            GUILayout.BeginArea( GUIUtil.R( GUIUtil.HalfComponentSpacing, posy, boxWidth, boxHeight ) );
-         else
-            GUILayout.BeginArea( GUIUtil.R( GUIUtil.HalfComponentSpacing, posy, boxWidth, boxHeight ), UITheme.TextAreaStyle );
+         GUI.Box( areaRect, GUIUtil.none, UITheme.TextAreaStyle );
+
+         var padding = UITheme.TextAreaStyle.padding;
+         var viewport = GUIUtil.R(
+            areaRect.x + padding.left,
+            areaRect.y + padding.top,
+            areaRect.width - padding.horizontal,
+            areaRect.height - padding.vertical );
+
+         var textList = texts as IList<string> ?? texts.ToList();
+         var style = UITheme.LabelTranslation;
+         var heights = MeasureTextHeights( textList, viewport.width, style );
+         var contentHeight = GetTextContentHeight( heights );
+         var scrollbarWidth = GUIUtil.GetScrollbarWidth( viewport.height, contentHeight );
+         var contentWidth = viewport.width - scrollbarWidth;
+         if( scrollbarWidth > 0f )
+         {
+            heights = MeasureTextHeights( textList, contentWidth, style );
+            contentHeight = GetTextContentHeight( heights );
+         }
 
          if( _isScrollViewSupported )
          {
             bool hasStartedScrollView = false;
             try
             {
-               positioned.ScrollPosition = GUILayout.BeginScrollView( positioned.ScrollPosition, ArrayHelper.Null<GUILayoutOption>() );
+               positioned.ScrollPosition = GUIUtil.BeginVerticalScrollView( viewport, positioned.ScrollPosition, contentHeight, out contentWidth );
                hasStartedScrollView = true;
 
-               foreach( var text in texts )
-               {
-                  GUILayout.Label( text, GUIUtil.LabelTranslation, ArrayHelper.Null<GUILayoutOption>() );
-               }
+               DrawTextLabels( textList, heights, contentWidth, style );
             }
-            catch( Exception e )
+            catch( NotSupportedException e )
             {
-               if( e is System.NotSupportedException )
-               {
-                  XUnity.Common.Logging.XuaLogger.AutoTranslator.Warn( e, "An error occurred while calling GUILayout.BeginScrollView. Fallback mode will be used." );
-                  _isScrollViewSupported = false;
-               }
-               else throw;
+               XUnity.Common.Logging.XuaLogger.AutoTranslator.Warn( e, "A text scroll view could not be created. Fallback mode will be used." );
+               _isScrollViewSupported = false;
             }
             finally
             {
-               if( hasStartedScrollView ) GUILayout.EndScrollView();
+               if( hasStartedScrollView )
+               {
+                  GUIUtil.EndVerticalScrollView( viewport, positioned.ScrollPosition, contentHeight );
+               }
             }
          }
 
          if( !_isScrollViewSupported )
          {
-            GUILayout.BeginVertical( UITheme.TextAreaStyle, ArrayHelper.Null<GUILayoutOption>() );
-
-            foreach( var text in texts )
-            {
-               GUILayout.Label( text, GUIUtil.LabelTranslation, ArrayHelper.Null<GUILayoutOption>() );
-            }
-
-            GUILayout.EndVertical();
+            GUILayout.BeginArea( viewport );
+            var fallbackHeights = MeasureTextHeights( textList, viewport.width, style );
+            DrawTextLabels( textList, fallbackHeights, viewport.width, style );
+            GUILayout.EndArea();
          }
+      }
 
-         GUILayout.EndArea();
+      private static float[] MeasureTextHeights( IList<string> texts, float width, GUIStyle style )
+      {
+         var heights = new float[ texts.Count ];
+         for( int i = 0; i < texts.Count; i++ )
+         {
+            heights[ i ] = style.CalcHeight( new GUIContent( texts[ i ] ), width );
+         }
+         return heights;
+      }
+
+      private static float GetTextContentHeight( float[] heights )
+      {
+         float height = 0f;
+         for( int i = 0; i < heights.Length; i++ )
+         {
+            height += heights[ i ] + 2f;
+         }
+         return height;
+      }
+
+      private static void DrawTextLabels( IList<string> texts, float[] heights, float width, GUIStyle style )
+      {
+         float y = 0f;
+         for( int i = 0; i < texts.Count; i++ )
+         {
+            var content = new GUIContent( texts[ i ] );
+            var height = heights[ i ];
+            GUI.Label( GUIUtil.R( 0f, y, width, height ), content, style );
+            y += height + 2f;
+         }
       }
    }
 }

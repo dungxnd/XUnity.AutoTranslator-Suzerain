@@ -2,11 +2,19 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.1.0
+
+#### New
+* Built-in LLM translators (`OpenAiTranslate`, `OllamaTranslate`, `LmStudioTranslate`) with one shared `LLMConfig.yaml` for URL, model, API key, prompts, glossary entries, batching limits, and model parameters; the OpenAI endpoint also accepts keyless OpenAI-compatible local servers
+* LLM configuration is hot-reloaded from disk without restarting, the main window shows the selected LLM endpoint's temperature, and an **Advanced** window edits the active `LLMConfig.yaml` in place
+* LLM requests batch short lines against a character budget, isolate long multi-paragraph entries so they cannot break a mixed batch, split and reassemble long texts at paragraph/sentence boundaries, and send Ollama model parameters under `options` (mapping `max_tokens` to `num_predict`)
+
 ### 6.0.0
 
 #### New
 * Redesigned in-game UI: automatic scaling from 720p to 4K/ultrawide/Steam Deck, a manual `UI Scale` control, dark flat theme, CJK-capable font, consistent hover/pressed/disabled states, and screen-clamped windows
 * Improved window UX: cascaded default positions, content-sized main window, aggregator panels that fit the screen with per-panel scrolling, dropdowns that stay open while scrolling, `Esc` closes the topmost window, click-to-front, title-bar dragging, and copy-success toasts
+* Cleaner scrolling and popups: vertical-only slim themed scrollbars (no horizontal bar), restyled dropdown popups with a caret, flat rows, hover/selected states, and correct click-outside behavior
 * Faster large translation loading and incremental reloads, so editing one file no longer triggers a full reparse freeze
 * Safer translation storage: prune preserves comments, directives, and regex/splitter lines; rewrites are atomic with rotating backups; appends repair a missing trailing newline; external edits are not silently clobbered
 * Wrapper-aware cache reuse: safe surrounding wrappers (paired quotes, brackets, text-like angle brackets, and numbered/bulleted prefixes) now reuse the cached core translation and re-apply the wrapper instead of creating a new line; wrapped translations are also recognized to avoid re-translation (for example `1. Hello brother`, `Hello brother`, `"Hello brother"`, and `<Hello brother>` share one translation)

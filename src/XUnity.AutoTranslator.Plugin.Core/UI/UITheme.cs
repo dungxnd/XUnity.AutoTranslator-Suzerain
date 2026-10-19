@@ -24,6 +24,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       public static readonly GUIStyle PanelStyle;
       public static readonly GUIStyle NoSpacingBoxStyle;
       public static readonly GUIStyle TextAreaStyle;
+      public static readonly GUIStyle TextFieldStyle;
       public static readonly GUIStyle ButtonStyle;
       public static readonly GUIStyle ButtonPressedStyle;
       public static readonly GUIStyle SmallButtonStyle;
@@ -38,6 +39,16 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       public static readonly GUIStyle ToastStyle;
       public static readonly GUIStyle HorizontalSliderStyle;
       public static readonly GUIStyle HorizontalSliderThumbStyle;
+      public static readonly GUIStyle DropdownPopupStyle;
+      public static readonly GUIStyle DropdownHeaderStyle;
+      public static readonly GUIStyle DropdownHeaderActiveStyle;
+      public static readonly GUIStyle DropdownItemStyle;
+      public static readonly GUIStyle DropdownItemSelectedStyle;
+
+      public static Texture2D ScrollbarTrack => TrackBackground;
+      public static Texture2D ScrollbarThumb => ThumbNormal;
+      public static Texture2D CaretDown => CaretDownTexture;
+      public static Texture2D CaretUp => CaretUpTexture;
 
       private static readonly RectOffset Empty = new RectOffset( 0, 0, 0, 0 );
       private static readonly Texture2D WindowBackground;
@@ -50,6 +61,9 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       private static readonly Texture2D ThumbNormal;
       private static readonly Texture2D ThumbHover;
       private static readonly Texture2D ToastBackground;
+      private static readonly Texture2D DropdownPopupBackground;
+      private static readonly Texture2D CaretDownTexture;
+      private static readonly Texture2D CaretUpTexture;
 
       static UITheme()
       {
@@ -65,6 +79,9 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
          ThumbNormal = CreateSolidTexture( AccentColor );
          ThumbHover = CreateSolidTexture( AccentStrongColor );
          ToastBackground = CreateBoxTexture( SurfaceColor, SuccessColor );
+         DropdownPopupBackground = CreateBoxTexture( SurfaceRaisedColor, AccentStrongColor );
+         CaretDownTexture = CreateCaretTexture( true );
+         CaretUpTexture = CreateCaretTexture( false );
 
          WindowStyle = CreateStyle( GUI.skin.window, style =>
          {
@@ -107,6 +124,24 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
             style.border = new RectOffset( 1, 1, 1, 1 );
             style.padding = new RectOffset( 6, 6, 6, 6 );
             style.margin = Empty;
+            ApplyFont( style, 13, FontStyle.Normal );
+         } );
+
+         TextFieldStyle = CreateStyle( GUI.skin.textField, style =>
+         {
+            style.normal.background = ButtonNormal;
+            style.hover.background = ButtonHover;
+            style.focused.background = ButtonHover;
+            style.active.background = ButtonActive;
+            style.normal.textColor = TextColor;
+            style.hover.textColor = TextColor;
+            style.focused.textColor = TextColor;
+            style.active.textColor = TextColor;
+            style.border = new RectOffset( 1, 1, 1, 1 );
+            style.padding = new RectOffset( 6, 6, 4, 4 );
+            style.margin = Empty;
+            style.alignment = TextAnchor.MiddleLeft;
+            style.clipping = TextClipping.Clip;
             ApplyFont( style, 13, FontStyle.Normal );
          } );
 
@@ -264,6 +299,55 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
             style.active.background = ThumbHover;
             style.border = new RectOffset( 0, 0, 0, 0 );
          } );
+
+         DropdownPopupStyle = CreateStyle( GUI.skin.box, style =>
+         {
+            style.normal.background = DropdownPopupBackground;
+            style.border = new RectOffset( 1, 1, 1, 1 );
+            style.padding = new RectOffset( 4, 4, 4, 4 );
+            style.margin = Empty;
+         } );
+
+         DropdownHeaderStyle = CreateStyle( ButtonStyle, style =>
+         {
+            style.alignment = TextAnchor.MiddleLeft;
+            style.padding = new RectOffset( 8, 22, 4, 4 );
+         } );
+
+         DropdownHeaderActiveStyle = CreateStyle( ButtonPressedStyle, style =>
+         {
+            style.alignment = TextAnchor.MiddleLeft;
+            style.padding = new RectOffset( 8, 22, 4, 4 );
+         } );
+
+         DropdownItemStyle = CreateStyle( ButtonStyle, style =>
+         {
+            style.normal.background = null;
+            style.hover.background = ButtonHover;
+            style.active.background = ButtonActive;
+            style.focused.background = null;
+            style.onNormal.background = null;
+            style.onHover.background = ButtonHover;
+            style.onActive.background = ButtonPressed;
+            style.normal.textColor = TextColor;
+            style.hover.textColor = TextColor;
+            style.active.textColor = TextColor;
+            style.focused.textColor = TextColor;
+            style.alignment = TextAnchor.MiddleLeft;
+            style.padding = new RectOffset( 8, 8, 4, 4 );
+            style.margin = Empty;
+         } );
+
+         DropdownItemSelectedStyle = CreateStyle( DropdownItemStyle, style =>
+         {
+            style.normal.background = ButtonActive;
+            style.hover.background = ButtonActive;
+            style.active.background = ButtonPressed;
+            style.focused.background = ButtonActive;
+            style.normal.textColor = TextColor;
+            style.hover.textColor = TextColor;
+            style.active.textColor = TextColor;
+         } );
       }
 
       private static Font LoadUIFont()
@@ -355,6 +439,28 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       {
          var texture = new Texture2D( 1, 1, TextureFormat.ARGB32, false );
          texture.SetPixel( 0, 0, color );
+         texture.Apply();
+         GameObject.DontDestroyOnLoad( texture );
+         return texture;
+      }
+
+      private static Texture2D CreateCaretTexture( bool pointingDown )
+      {
+         const int width = 7;
+         const int height = 4;
+         var texture = new Texture2D( width, height, TextureFormat.ARGB32, false );
+         var clear = new Color( 0f, 0f, 0f, 0f );
+
+         for( int y = 0; y < height; y++ )
+         {
+            var inset = pointingDown ? height - 1 - y : y;
+            for( int x = 0; x < width; x++ )
+            {
+               var isFilled = x >= inset && x < width - inset;
+               texture.SetPixel( x, y, isFilled ? AccentColor : clear );
+            }
+         }
+
          texture.Apply();
          GameObject.DontDestroyOnLoad( texture );
          return texture;

@@ -329,6 +329,15 @@ namespace XUnity.AutoTranslator.Plugin.Core.Endpoints
       {
          try
          {
+            var batchLimiter = Endpoint as ITranslationBatchLimiter;
+            var maxCharactersPerRequest = batchLimiter != null && batchLimiter.MaxCharactersPerRequest > 0
+               ? batchLimiter.MaxCharactersPerRequest
+               : int.MaxValue;
+            var maxCharactersPerTranslation = batchLimiter != null && batchLimiter.MaxCharactersPerTranslation > 0
+               ? batchLimiter.MaxCharactersPerTranslation
+               : int.MaxValue;
+            var totalCharacters = 0L;
+
             var kvps = _unstartedJobs.Take( Endpoint.MaxTranslationsPerRequest ).ToList();
             var untranslatedTexts = new List<UntranslatedTextInfo>();
             var jobs = new List<TranslationJob>();
@@ -337,37 +346,58 @@ namespace XUnity.AutoTranslator.Plugin.Core.Endpoints
             {
                var key = kvp.Key;
                var job = kvp.Value;
+
+               if( !job.IsTranslatable )
+               {
+                  _unstartedJobs.Remove( key );
+                  Manager.UnstartedTranslations--;
+
+                  _ongoingJobs[ key ] = job;
+                  Manager.OngoingTranslations++;
+                  OnSingleTranslationCompleted( job, new[] { key.TemplatedOriginal_Text_ExternallyTrimmed }, false );
+                  continue;
+               }
+
+               var unpreparedUntranslatedText = GetTextToTranslate( job );
+               var textLength = unpreparedUntranslatedText.Length;
+               var isLongText = textLength > maxCharactersPerTranslation;
+               var exceedsBatchBudget = totalCharacters + textLength > maxCharactersPerRequest;
+
+               if( jobs.Count > 0 && ( isLongText || exceedsBatchBudget ) )
+               {
+                  // Leave this and the remaining jobs in the queue. The long text will
+                  // start the next batch on its own instead of poisoning this one.
+                  break;
+               }
+
                _unstartedJobs.Remove( key );
                Manager.UnstartedTranslations--;
 
-
-               if( job.IsTranslatable )
+               var untranslatedText = PrepareUntranslatedText( unpreparedUntranslatedText, job );
+               if( CanTranslate( unpreparedUntranslatedText ) )
                {
-                  var unpreparedUntranslatedText = GetTextToTranslate( job );
-                  var untranslatedText = PrepareUntranslatedText( unpreparedUntranslatedText, job );
-                  if( CanTranslate( unpreparedUntranslatedText ) )
-                  {
-                     jobs.Add( job );
-                     untranslatedTexts.Add( untranslatedText );
-                     _ongoingJobs[ key ] = job;
-                     Manager.OngoingTranslations++;
+                  jobs.Add( job );
+                  untranslatedTexts.Add( untranslatedText );
+                  _ongoingJobs[ key ] = job;
+                  Manager.OngoingTranslations++;
+                  totalCharacters += textLength;
 
-                     if( !Settings.EnableSilentMode ) XuaLogger.AutoTranslator.Debug( "Started: '" + unpreparedUntranslatedText + "'" );
-                  }
-                  else
-                  {
-                     XuaLogger.AutoTranslator.Warn( $"Dequeued: '{unpreparedUntranslatedText}' because the current endpoint has already failed this translation 3 times." );
-                     job.State = TranslationJobState.Failed;
-                     job.ErrorMessage = "The endpoint failed to perform this translation 3 or more times.";
+                  if( !Settings.EnableSilentMode ) XuaLogger.AutoTranslator.Debug( "Started: '" + unpreparedUntranslatedText + "'" );
 
-                     InvokeJobFailedWithFallbaack( job );
+                  // Send this text on its own when it is over the per-translation limit
+                  // or when it consumed the whole request budget.
+                  if( isLongText || exceedsBatchBudget )
+                  {
+                     break;
                   }
                }
                else
                {
-                  _ongoingJobs[ key ] = job;
-                  Manager.OngoingTranslations++;
-                  OnSingleTranslationCompleted( job, new[] { key.TemplatedOriginal_Text_ExternallyTrimmed }, false );
+                  XuaLogger.AutoTranslator.Warn( $"Dequeued: '{unpreparedUntranslatedText}' because the current endpoint has already failed this translation 3 times." );
+                  job.State = TranslationJobState.Failed;
+                  job.ErrorMessage = "The endpoint failed to perform this translation 3 or more times.";
+
+                  InvokeJobFailedWithFallbaack( job );
                }
             }
 

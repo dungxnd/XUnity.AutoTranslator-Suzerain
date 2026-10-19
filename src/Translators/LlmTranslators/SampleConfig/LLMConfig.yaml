@@ -1,0 +1,51 @@
+# LLMConfig.yaml — shared configuration for the OpenAiTranslate, OllamaTranslate, and LmStudioTranslate endpoints.
+# Select the endpoint in Config.ini:
+#
+#   [Service]
+#   Endpoint=LmStudioTranslate
+#   FallbackEndpoint=
+#
+# Endpoint URLs:
+#   OpenAI:    https://api.openai.com/v1/chat/completions  (apiKeyRequired: true)
+#   Ollama:    http://localhost:11434/api/chat             (apiKeyRequired: false)
+#   LM Studio: http://localhost:1234/v1/chat/completions   (apiKeyRequired: false)
+#
+# All settings for all three endpoints live in this file. The in-game
+# Advanced window edits these values in place.
+
+apiKey: "None"
+apiKeyRequired: false
+url: "http://localhost:1234/v1/chat/completions"
+model: "model-identifier"
+
+# Batching: short lines are grouped to amortize the system prompt.
+# Long texts are sent on their own and split into smaller blocks when needed.
+# Set a character limit to 0 or lower to disable that limit.
+maxTranslationsPerRequest: 12
+maxCharactersPerRequest: 4000
+maxCharactersPerTranslation: 2000
+
+# max_tokens is sent to OpenAI/LM Studio and mapped to Ollama's num_predict.
+modelParams:
+  temperature: 0.2
+  max_tokens: 4096
+  top_p: 0.9
+  top_k: 40
+  frequency_penalty: 0
+  presence_penalty: 0
+
+systemPrompt: |
+  Translate the source text into fluent English while preserving the original tone and meaning.
+  Do not add explanations, notes, markdown, or quotation marks.
+  Preserve character names, placeholders, variables, rich-text tags, escaped characters, and line breaks.
+  Use the glossary translation exactly when a matching source term appears.
+
+glossaryPrompt: |
+  # Glossary for Consistent Translations
+  Use the translation for exact matches.
+  ## Terms
+
+# Optional glossary entries, matched against the source text.
+glossary:
+  - raw: "Example term"
+    result: "Example translation"

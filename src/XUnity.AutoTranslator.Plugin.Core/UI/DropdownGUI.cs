@@ -12,7 +12,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
       where TSelection : class
    {
 
-      private const float MaxHeight = GUIUtil.RowHeight * 5;
+      private const float MaxHeight = GUIUtil.RowHeight * 6;
 
       private GUIContent _noSelection;
       private GUIContent _unselect;
@@ -47,7 +47,15 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
             GUI.enabled = enabled;
 
             var headerRect = GUIUtil.R( _x, _y, _width, GUIUtil.RowHeight );
-            bool clicked = GUI.Button( headerRect, _viewModel.CurrentSelection?.Text ?? _noSelection, _isShown ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle );
+            bool clicked = GUI.Button(
+               headerRect,
+               _viewModel.CurrentSelection?.Text ?? _noSelection,
+               _isShown ? UITheme.DropdownHeaderActiveStyle : UITheme.DropdownHeaderStyle );
+
+            GUI.DrawTexture(
+               GUIUtil.R( headerRect.x + headerRect.width - 16, headerRect.y + ( headerRect.height - 4f ) / 2f, 7f, 4f ),
+               _isShown ? UITheme.CaretUp : UITheme.CaretDown );
+
             if( clicked )
             {
                _isShown = !_isShown;
@@ -63,7 +71,9 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
                ShowDropdown( _x, _y + GUIUtil.RowHeight, _width );
             }
 
-            var mousePosition = GUIUtil.ScreenToGuiPoint( new Vector2( UnityInput.Current.mousePosition.x, UnityInput.Current.mousePosition.y ) );
+            // This runs inside GUI.Window, so Event.current.mousePosition is already
+            // in window-local GUI coordinates and matches headerRect/_popupRect.
+            var mousePosition = Event.current.mousePosition;
             if( !clicked
                && Event.current.type == EventType.MouseDown
                && !headerRect.Contains( mousePosition )
@@ -84,7 +94,11 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
 
       private void ShowDropdown( float x, float y, float width )
       {
-         var popupHeight = _supportsScrollView && _viewModel.Options.Count * GUIUtil.RowHeight > MaxHeight ? MaxHeight : _viewModel.Options.Count * GUIUtil.RowHeight;
+         var contentHeight = ( _viewModel.Options.Count + 1 ) * GUIUtil.RowHeight;
+         var padding = UITheme.DropdownPopupStyle.padding;
+         var viewportHeight = Mathf.Min( contentHeight, MaxHeight );
+         var popupHeight = viewportHeight + padding.vertical;
+
          if( _maxY > 0f && y + popupHeight > _maxY )
          {
             y = Mathf.Max( 0f, _y - popupHeight );
@@ -93,44 +107,74 @@ namespace XUnity.AutoTranslator.Plugin.Core.UI
          var rect = GUIUtil.R( x, y, width, popupHeight );
          _popupRect = rect;
 
-         GUILayout.BeginArea( rect, UITheme.NoSpacingBoxStyle );
-         try
+         GUI.Box( rect, GUIUtil.none, UITheme.DropdownPopupStyle );
+
+         var viewport = GUIUtil.R(
+            rect.x + padding.left,
+            rect.y + padding.top,
+            rect.width - padding.horizontal,
+            viewportHeight );
+
+         var itemY = 0f;
+         var scrollStarted = false;
+         float contentWidth = viewport.width;
+
+         if( _supportsScrollView )
          {
-            if( _supportsScrollView )
+            try
             {
-               _scrollPosition = GUILayout.BeginScrollView( _scrollPosition, GUIStyle.none );
+               _scrollPosition = GUIUtil.BeginVerticalScrollView( viewport, _scrollPosition, contentHeight, out contentWidth );
+               scrollStarted = true;
+               DrawItems( ref itemY, contentWidth );
+            }
+            catch( NotSupportedException e )
+            {
+               _supportsScrollView = false;
+               XuaLogger.AutoTranslator.Warn( e, "A dropdown scroll view could not be created. Proceeding without scrolling." );
+            }
+            finally
+            {
+               if( scrollStarted )
+               {
+                  GUIUtil.EndVerticalScrollView( viewport, _scrollPosition, contentHeight );
+               }
             }
          }
-         catch( Exception e )
-         {
-            XuaLogger.AutoTranslator.Warn( e, "GUILayout.BeginScrollView not supported. Proceeding without..." );
-            _supportsScrollView = false;
-         }
 
-         var style = _viewModel.CurrentSelection == null ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle;
-         if( GUILayout.Button( _unselect, style, ArrayHelper.Null<GUILayoutOption>() ) )
+         if( !scrollStarted )
+         {
+            GUILayout.BeginArea( viewport );
+            itemY = 0f;
+            DrawItems( ref itemY, viewport.width );
+            GUILayout.EndArea();
+         }
+      }
+
+      private void DrawItems( ref float itemY, float contentWidth )
+      {
+         var previousEnabled = GUI.enabled;
+
+         var unselectStyle = _viewModel.CurrentSelection == null ? UITheme.DropdownItemSelectedStyle : UITheme.DropdownItemStyle;
+         if( GUI.Button( GUIUtil.R( 0f, itemY, contentWidth, GUIUtil.RowHeight ), _unselect, unselectStyle ) )
          {
             _viewModel.Select( null );
             _isShown = false;
          }
+         itemY += GUIUtil.RowHeight;
 
          foreach( var option in _viewModel.Options )
          {
-            style = option.IsSelected() ? UITheme.ButtonPressedStyle : UITheme.ButtonStyle;
-            GUI.enabled = option?.IsEnabled() ?? true;
-            if( GUILayout.Button( option.Text, style, ArrayHelper.Null<GUILayoutOption>() ) )
+            GUI.enabled = option.IsEnabled();
+            var style = option.IsSelected() ? UITheme.DropdownItemSelectedStyle : UITheme.DropdownItemStyle;
+            if( GUI.Button( GUIUtil.R( 0f, itemY, contentWidth, GUIUtil.RowHeight ), option.Text, style ) )
             {
                _viewModel.Select( option );
                _isShown = false;
             }
-            GUI.enabled = true;
+            itemY += GUIUtil.RowHeight;
          }
 
-         if( _supportsScrollView )
-         {
-            GUILayout.EndScrollView();
-         }
-         GUILayout.EndArea();
+         GUI.enabled = previousEnabled;
       }
    }
 }
