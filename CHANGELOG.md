@@ -2,6 +2,12 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.2.3
+
+#### Bug Fix
+* Empty cached translations are ignored instead of blanking game text
+* `Reload` / `Alt+R` refreshes only active registered text, and scene-load scans skip inactive objects, so large scenes reload quickly; `Hook` / `Alt+U` remains the full object-tree scan for newly unhooked text
+
 ### 6.2.2
 
 #### Bug Fix

@@ -134,7 +134,8 @@ namespace XUnity.AutoTranslator.Plugin.Core.Tests
             File.WriteAllText( main,
                "Hello brother=Chào người anh em\r\n" +
                "1. Good morning=1. Chào buổi sáng\r\n" +
-               "Quoted only=\"Đã dịch\"\r\n" );
+               "Quoted only=\"Đã dịch\"\r\n" +
+               "blank=\r\n" );
 
             cache = new TextTranslationCache();
             cache.LoadTranslationFiles();
@@ -154,6 +155,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Tests
 
             Assert.Equal( "\"Đã dịch\"", Lookup( cache, "Quoted only" ) );
             Assert.Equal( "\"Đã dịch\"", Lookup( cache, "\"Quoted only\"" ) );
+            Assert.Null( Lookup( cache, "blank" ) );
 
             Assert.False( cache.IsTranslatable( "\"Chào người anh em\"", false, TranslationScopes.None ) );
             Assert.False( cache.IsTranslatable( "<Chào người anh em>", false, TranslationScopes.None ) );

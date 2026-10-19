@@ -10,6 +10,7 @@ public class IndexTranslateTranslatorEndpoint : HttpEndpoint, ITranslateEndpoint
 {
     public override string Id => "IndexTranslate";
     public override string FriendlyName => "Index-Translate";
+
     public override int MaxTranslationsPerRequest => Math.Max(1, _configProvider?.Current.MaxTranslationsPerRequest ?? 12);
 
     // The public Index-Translate API is shared; keep the request rate modest.

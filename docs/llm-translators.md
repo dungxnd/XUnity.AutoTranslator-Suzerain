@@ -131,6 +131,8 @@ The main plugin window shows a `Temperature` row for the selected endpoint. Its 
 
 `LLMConfig.yaml` is checked for changes at most twice per second. Edits are applied to subsequent requests without restarting the game, including the model, prompt, API key, glossary, and batch limits.
 
+`Reload` / `Alt+R` refreshes active registered text only, so large scenes reload quickly. Use `Hook` / `Alt+U` when you need a full object-tree scan. Scene loads run an active-object scan after one second.
+
 ## Glossary
 
 Glossary entries live in `LLMConfig.yaml` under `glossary`:

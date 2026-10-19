@@ -1212,7 +1212,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void AddTranslation( string key, string value, int scope )
       {
-         if( key != null && value != null )
+         if( !string.IsNullOrEmpty( key ) && !string.IsNullOrEmpty( value ) )
          {
             if( scope != TranslationScopes.None )
             {

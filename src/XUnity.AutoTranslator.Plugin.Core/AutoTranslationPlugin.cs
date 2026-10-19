@@ -625,7 +625,19 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
                UnloadUnusedAssets();
             }
+
+            CoroutineHelper.Start( ManualHookForComponentsAfterSceneLoad() );
          }
+      }
+
+      private IEnumerator ManualHookForComponentsAfterSceneLoad()
+      {
+         if( UnityFeatures.SupportsWaitForSecondsRealtime )
+            yield return new WaitForSecondsRealtime( 1f );
+         else
+            yield return new WaitForSeconds( 1f );
+
+         ManualHookForComponents( true );
       }
 
       private void RestoreWindowsAfterSceneLoad()
@@ -3638,11 +3650,11 @@ namespace XUnity.AutoTranslator.Plugin.Core
          ManualHookForTextures();
       }
 
-      private void ManualHookForComponents()
+      private void ManualHookForComponents( bool activeOnly = false )
       {
          foreach( var root in GetAllRoots() )
          {
-            TraverseChildrenManualHook( root );
+            TraverseChildrenManualHook( root, activeOnly );
          }
       }
 
@@ -3724,36 +3736,36 @@ namespace XUnity.AutoTranslator.Plugin.Core
          }
       }
 
-      private void TraverseChildrenManualHook( GameObject obj )
+      private void TraverseChildrenManualHook( GameObject obj, bool activeOnly )
       {
-         if( obj != null )
-         {
-            var components = obj.GetComponents<Component>();
-            foreach( var component in components )
-            {
-               var textComponent = component.CreateDerivedProxyIfRequiredAndPossible();
-               if( textComponent != null )
-               {
-                  Hook_TextChanged( textComponent, false );
-               }
+         if( obj == null || ( activeOnly && !obj.activeInHierarchy ) )
+            return;
 
-               if( Settings.EnableTextureTranslation || Settings.EnableTextureDumping )
-               {
-                  if( component.IsKnownImageType() )
-                  {
-                     Texture2D _ = null;
-                     Hook_ImageChangedOnComponent( component, ref _, false, false );
-                  }
-               }
+         var components = obj.GetComponents<Component>();
+         foreach( var component in components )
+         {
+            var textComponent = component.CreateDerivedProxyIfRequiredAndPossible();
+            if( textComponent != null )
+            {
+               Hook_TextChanged( textComponent, false );
             }
 
-            if( obj.transform != null )
+            if( Settings.EnableTextureTranslation || Settings.EnableTextureDumping )
             {
-               for( int i = 0; i < obj.transform.childCount; i++ )
+               if( component.IsKnownImageType() )
                {
-                  var child = obj.transform.GetChild( i );
-                  TraverseChildrenManualHook( child.gameObject );
+                  Texture2D _ = null;
+                  Hook_ImageChangedOnComponent( component, ref _, false, false );
                }
+            }
+         }
+
+         if( obj.transform != null )
+         {
+            for( int i = 0; i < obj.transform.childCount; i++ )
+            {
+               var child = obj.transform.GetChild( i );
+               TraverseChildrenManualHook( child.gameObject, activeOnly );
             }
          }
       }
