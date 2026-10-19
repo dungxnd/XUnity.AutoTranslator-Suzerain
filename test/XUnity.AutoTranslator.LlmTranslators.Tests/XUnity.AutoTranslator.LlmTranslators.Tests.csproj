@@ -34,15 +34,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="XUnity.AutoTranslator.Plugin.Core">
-      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.AutoTranslator.Plugin.Core.dll</HintPath>
-    </Reference>
-    <Reference Include="XUnity.Common">
-      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\XUnity.Common.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\..\src\XUnity.AutoTranslator.Plugin.Core\bin\$(Configuration)\net6.0\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\src\XUnity.AutoTranslator.Plugin.Core\XUnity.AutoTranslator.Plugin.Core.csproj" />
+    <ProjectReference Include="..\..\src\XUnity.Common\XUnity.Common.csproj" />
   </ItemGroup>
 
 </Project>
