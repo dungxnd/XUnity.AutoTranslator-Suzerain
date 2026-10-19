@@ -11,6 +11,9 @@ namespace XUnity.AutoTranslator.LlmTranslators.Tests;
 
 public class ConfigTests
 {
+    private const string IndexPublicUrl = "https://index-translate.bilibili.com/v1/chat/completions";
+    private const string IndexPublicModel = "Index-Translate-35B-A3B";
+
     private static string SampleConfigPath =>
         Path.Combine(AppContext.BaseDirectory, "SampleConfig", "LLMConfig.yaml");
 
@@ -918,7 +921,7 @@ public class ConfigTests
         {
             File.WriteAllText(
                 Path.Combine(configDirectory, Configuration.DefaultFileName),
-                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\n");
+                "apiKeyRequired: false\nurl: http://localhost:1234/v1/chat/completions\nmodel: model-identifier\n");
 
             var endpoint = new IndexTranslateTranslatorEndpoint();
             endpoint.Initialize(new TestInitializationContext(translatorDirectory));
@@ -927,10 +930,11 @@ public class ConfigTests
             endpoint.OnCreateRequest(context);
 
             Assert.NotNull(context.Request);
-            Assert.Equal("Index-Translate-Client/1.0", context.Request!.Headers["User-Agent"]);
+            Assert.Equal(IndexPublicUrl, context.Request!.Address.ToString());
+            Assert.Equal("Index-Translate-Client/1.0", context.Request.Headers["User-Agent"]);
 
             var payload = JSON.Parse(context.Request.Data);
-            Assert.Equal("Index-Translate-35B-A3B", payload["model"].Value);
+            Assert.Equal(IndexPublicModel, payload["model"].Value);
             Assert.Equal(0.0, payload["temperature"].AsDouble);
             Assert.Equal(4096, payload["max_tokens"].AsInt);
             Assert.False(payload["chat_template_kwargs"]["enable_thinking"].AsBool);
@@ -1015,7 +1019,7 @@ public class ConfigTests
         {
             File.WriteAllText(
                 Path.Combine(configDirectory, Configuration.DefaultFileName),
-                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\n");
+                "apiKeyRequired: false\nurl: http://localhost:1234/v1/chat/completions\nmodel: model-identifier\n");
 
             var endpoint = new IndexTranslateTranslatorEndpoint();
             endpoint.Initialize(new TestInitializationContext(translatorDirectory));
@@ -1025,6 +1029,10 @@ public class ConfigTests
             Assert.Equal("0", temperature);
             Assert.True(settings.TryGetSetting("max_tokens", out var maxTokens));
             Assert.Equal("4096", maxTokens);
+            Assert.True(settings.TryGetSetting("url", out var url));
+            Assert.Equal(IndexPublicUrl, url);
+            Assert.True(settings.TryGetSetting("model", out var model));
+            Assert.Equal(IndexPublicModel, model);
         }
         finally
         {
@@ -1052,6 +1060,67 @@ public class ConfigTests
             var content = JSON.Parse(context.Request!.Data)["messages"][0]["content"].Value;
             Assert.Contains("请将以下文本翻译为韩语", content);
             Assert.DoesNotContain("auto", content);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointUsesSelfHostedOverrides()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: http://localhost:1234/v1/chat/completions\nmodel: model-identifier\nindexTranslateUrl: \"http://127.0.0.1:8000/v1/chat/completions\"\nindexTranslateModel: \"IndexTeam/Index-Translate-9B\"\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+
+            var context = new TestRequestCreationContext(new[] { "hello" });
+            endpoint.OnCreateRequest(context);
+
+            Assert.Equal("http://127.0.0.1:8000/v1/chat/completions", context.Request!.Address.ToString());
+            var payload = JSON.Parse(context.Request.Data);
+            Assert.Equal("IndexTeam/Index-Translate-9B", payload["model"].Value);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointWritesDedicatedOverrides()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+        var configFile = Path.Combine(configDirectory, Configuration.DefaultFileName);
+
+        try
+        {
+            File.WriteAllText(
+                configFile,
+                "apiKeyRequired: false\nurl: http://localhost:1234/v1/chat/completions\nmodel: model-identifier\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+            var settings = Assert.IsAssignableFrom<ITranslateEndpointSettingsEditor>(endpoint);
+
+            Assert.True(settings.TrySetSetting("url", "http://127.0.0.1:8000/v1/chat/completions", out var error), error);
+            Assert.True(settings.TrySetSetting("model", "IndexTeam/Index-Translate-9B", out error), error);
+
+            var text = File.ReadAllText(configFile);
+            Assert.Contains("indexTranslateUrl: \"http://127.0.0.1:8000/v1/chat/completions\"", text);
+            Assert.Contains("indexTranslateModel: \"IndexTeam/Index-Translate-9B\"", text);
+
+            Assert.True(settings.TryGetSetting("url", out var url));
+            Assert.Equal("http://127.0.0.1:8000/v1/chat/completions", url);
+            Assert.True(settings.TryGetSetting("model", out var model));
+            Assert.Equal("IndexTeam/Index-Translate-9B", model);
         }
         finally
         {

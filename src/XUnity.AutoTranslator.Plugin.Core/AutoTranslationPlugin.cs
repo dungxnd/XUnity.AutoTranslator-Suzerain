@@ -100,7 +100,11 @@ namespace XUnity.AutoTranslator.Plugin.Core
       private int _lastSpriteUpdateFrame = -1;
       private bool _isCalledFromSceneManager = false;
       private bool _translationReloadRequest = false;
-      private bool _hasUiBeenSetup = false;
+      private float _nextUiSetupAttempt = 0f;
+      private bool _mainWindowWasShown = false;
+      private bool _translationAggregatorWasShown = false;
+      private bool _translationAggregatorOptionsWasShown = false;
+      private bool _llmAdvancedWindowWasShown = false;
 
       /// <summary>
       /// Initialized the plugin.
@@ -319,21 +323,44 @@ namespace XUnity.AutoTranslator.Plugin.Core
          DisableAutoTranslator();
          try
          {
-            if( !_hasUiBeenSetup )
+            if( MainWindow != null
+               && TranslationAggregatorWindow != null
+               && TranslationAggregatorOptionsWindow != null
+               && LlmAdvancedWindow != null )
             {
-               _hasUiBeenSetup = true;
+               return;
+            }
 
+            if( Time.realtimeSinceStartup < _nextUiSetupAttempt )
+               return;
+
+            if( MainWindow == null )
+            {
                MainWindow = new XuaWindow( CreateXuaViewModel() );
+               MainWindow.IsShown = _mainWindowWasShown;
+            }
 
+            if( TranslationAggregatorWindow == null || TranslationAggregatorOptionsWindow == null )
+            {
                var vm = CreateTranslationAggregatorViewModel();
                TranslationAggregatorWindow = new TranslationAggregatorWindow( vm );
                TranslationAggregatorOptionsWindow = new TranslationAggregatorOptionsWindow( vm );
-               LlmAdvancedWindow = new LlmAdvancedWindow();
+               TranslationAggregatorWindow.IsShown = _translationAggregatorWasShown;
+               TranslationAggregatorOptionsWindow.IsShown = _translationAggregatorOptionsWasShown;
             }
+
+            if( LlmAdvancedWindow == null )
+            {
+               LlmAdvancedWindow = new LlmAdvancedWindow();
+               LlmAdvancedWindow.IsShown = _llmAdvancedWindowWasShown;
+            }
+
+            _nextUiSetupAttempt = 0f;
          }
          catch( Exception e )
          {
-            XuaLogger.AutoTranslator.Error( e, "An error occurred while setting up UI." );
+            _nextUiSetupAttempt = Time.realtimeSinceStartup + 5f;
+            XuaLogger.AutoTranslator.Error( e, "An error occurred while setting up UI. Retrying in 5 seconds." );
          }
          finally
          {
@@ -396,7 +423,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                 new LabelViewModel( "Plugin", () => Settings.IsShutdown ? "Shutdown" : "Running" ),
                 new LabelViewModel( "Translator", GetCurrentEndpointStatus ),
                 new LabelViewModel( "Temperature", GetCurrentEndpointTemperature ),
-                new LabelViewModel( "Running", () => $"{(TranslationManager.OngoingTranslations)}" ),
+                new LabelViewModel( "Processing", () => $"{(TranslationManager.OngoingTranslations)}" ),
                 new LabelViewModel( "Served", () => $"{Settings.TranslationCount} / {Settings.MaxTranslationsBeforeShutdown}" ),
                 new LabelViewModel( "Queued", () => $"{(TranslationManager.UnstartedTranslations)} / {Settings.MaxUnstartedJobs}" ),
                 new LabelViewModel( "Errors", () => $"{TranslationManager.CurrentEndpoint?.ConsecutiveErrors ?? 0} / {Settings.MaxErrors}" ),
@@ -1025,8 +1052,15 @@ namespace XUnity.AutoTranslator.Plugin.Core
          }
       }
 
-      private bool IsBelowMaxLength( string str )
+      private bool IsBelowMaxLength( string str, TranslationEndpointManager endpoint = null )
       {
+         var target = endpoint ?? TranslationManager.CurrentEndpoint;
+         if( target != null && target.Endpoint is ITranslationBatchLimiter )
+         {
+            // Batch-limited endpoints (the LLM translators) split long texts internally.
+            return true;
+         }
+
          return str.Length <= Settings.MaxCharactersPerTranslation;
       }
 
@@ -1751,7 +1785,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   {
                      result.SetErrorWithMessage( "Could not resolve a translation at this time." );
                   }
-                  else if( IsBelowMaxLength( text ) || endpoint == TranslationManager.PassthroughEndpoint )
+                  else if( IsBelowMaxLength( text, endpoint ) || endpoint == TranslationManager.PassthroughEndpoint )
                   {
                      CreateTranslationJobFor( endpoint, null, textKey, result, context, true, true, true, isTranslatable, allowFallback, untranslatedTextContext );
                   }
@@ -1862,7 +1896,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   {
                      result.SetErrorWithMessage( "Could not resolve a translation at this time." );
                   }
-                  else if( IsBelowMaxLength( text ) || endpoint == TranslationManager.PassthroughEndpoint )
+                  else if( IsBelowMaxLength( text, endpoint ) || endpoint == TranslationManager.PassthroughEndpoint )
                   {
                      CreateTranslationJobFor( endpoint, null, textKey, result, context, true, true, true, isTranslatable, allowFallback, untranslatedTextContext );
                   }
@@ -2128,7 +2162,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                return null;
 
             var isSpammer = ui.IsSpammingComponent();
-            if( isSpammer && !IsBelowMaxLength( text ) ) return null; // avoid templating long strings every frame for IMGUI, important!
+            if( isSpammer && text.Length > Settings.MaxCharactersPerTranslation ) return null; // avoid templating long strings every frame for IMGUI, important!
 
             // potentially shortcircuit if templated is a translation
             var textKey = GetCacheKey( text, isSpammer );
@@ -2271,7 +2305,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
             {
                if( !Settings.IsShutdown && !endpoint.HasFailedDueToConsecutiveErrors )
                {
-                  if( IsBelowMaxLength( text ) || endpoint == TranslationManager.PassthroughEndpoint )
+                  if( IsBelowMaxLength( text, endpoint ) || endpoint == TranslationManager.PassthroughEndpoint )
                   {
                      CreateTranslationJobFor( endpoint, ui, textKey, null, context, true, true, true, isTranslatable, true, untranslatedTextContext );
                   }
@@ -2397,7 +2431,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                            {
                               if( !Settings.IsShutdown && !endpoint.HasFailedDueToConsecutiveErrors )
                               {
-                                 if( IsBelowMaxLength( text ) || endpoint == TranslationManager.PassthroughEndpoint )
+                                 if( IsBelowMaxLength( text, endpoint ) || endpoint == TranslationManager.PassthroughEndpoint )
                                  {
                                     CreateTranslationJobFor( endpoint, ui, stabilizedTextKey, null, context, true, true, true, isStabilizedTranslatable, true, untranslatedTextContext );
                                  }
@@ -2465,7 +2499,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                            // once the text has stabilized, attempt to look it up
                            if( !Settings.IsShutdown && !endpoint.HasFailedDueToConsecutiveErrors )
                            {
-                              if( IsBelowMaxLength( text ) || endpoint == TranslationManager.PassthroughEndpoint )
+                              if( IsBelowMaxLength( text, endpoint ) || endpoint == TranslationManager.PassthroughEndpoint )
                               {
                                  CreateTranslationJobFor( endpoint, ui, textKey, null, context, true, true, true, isTranslatable, true, untranslatedTextContext );
                               }
@@ -2991,7 +3025,9 @@ namespace XUnity.AutoTranslator.Plugin.Core
                }
                catch( Exception e )
                {
-                  XuaLogger.AutoTranslator.Error( e, "An error occurred in XUnity.AutoTranslator UI. Disabling the UI." );
+                  _mainWindowWasShown = MainWindow.IsShown;
+                  _nextUiSetupAttempt = Time.realtimeSinceStartup + 1f;
+                  XuaLogger.AutoTranslator.Error( e, "An error occurred in XUnity.AutoTranslator UI. Recreating the UI." );
 
                   MainWindow = null;
                }
@@ -3005,7 +3041,9 @@ namespace XUnity.AutoTranslator.Plugin.Core
                }
                catch( Exception e )
                {
-                  XuaLogger.AutoTranslator.Error( e, "An error occurred in Translation Aggregator UI. Disabling the UI." );
+                  _translationAggregatorWasShown = TranslationAggregatorWindow.IsShown;
+                  _nextUiSetupAttempt = Time.realtimeSinceStartup + 1f;
+                  XuaLogger.AutoTranslator.Error( e, "An error occurred in Translation Aggregator UI. Recreating the UI." );
 
                   TranslationAggregatorWindow = null;
                }
@@ -3019,7 +3057,9 @@ namespace XUnity.AutoTranslator.Plugin.Core
                }
                catch( Exception e )
                {
-                  XuaLogger.AutoTranslator.Error( e, "An error occurred in Translation Aggregator Options UI. Disabling the UI." );
+                  _translationAggregatorOptionsWasShown = TranslationAggregatorOptionsWindow.IsShown;
+                  _nextUiSetupAttempt = Time.realtimeSinceStartup + 1f;
+                  XuaLogger.AutoTranslator.Error( e, "An error occurred in Translation Aggregator Options UI. Recreating the UI." );
 
                   TranslationAggregatorOptionsWindow = null;
                }
@@ -3033,7 +3073,9 @@ namespace XUnity.AutoTranslator.Plugin.Core
                }
                catch( Exception e )
                {
-                  XuaLogger.AutoTranslator.Error( e, "An error occurred in the LLM Advanced Settings UI. Disabling the UI." );
+                  _llmAdvancedWindowWasShown = LlmAdvancedWindow.IsShown;
+                  _nextUiSetupAttempt = Time.realtimeSinceStartup + 1f;
+                  XuaLogger.AutoTranslator.Error( e, "An error occurred in the LLM Advanced Settings UI. Recreating the UI." );
 
                   LlmAdvancedWindow = null;
                }

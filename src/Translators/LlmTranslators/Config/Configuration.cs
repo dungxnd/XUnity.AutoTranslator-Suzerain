@@ -12,6 +12,8 @@ public class LlmConfig
     public bool ApiKeyRequired { get; set; }
     public string Url { get; set; } = string.Empty;
     public string Model { get; set; } = string.Empty;
+    public string? IndexTranslateUrl { get; set; }
+    public string? IndexTranslateModel { get; set; }
     public string SystemPrompt { get; set; } = string.Empty;
     public string GlossaryPrompt { get; set; } = string.Empty;
     public int MaxTranslationsPerRequest { get; set; } = 12;
@@ -328,6 +330,29 @@ public static class Configuration
                 }
 
                 return SetModelParameter(file, "top_p", topP.ToString(CultureInfo.InvariantCulture), out error);
+            }
+
+            if (string.Equals(key, "indexTranslateUrl", StringComparison.OrdinalIgnoreCase))
+            {
+                var url = value?.Trim() ?? string.Empty;
+                if (!Uri.TryCreate(url, UriKind.Absolute, out _))
+                {
+                    error = "IndexTranslate URL must be an absolute URL.";
+                    return false;
+                }
+
+                return SetTopLevelValue(file, "indexTranslateUrl", QuoteYamlString(url), out error);
+            }
+
+            if (string.Equals(key, "indexTranslateModel", StringComparison.OrdinalIgnoreCase))
+            {
+                if (IsNullOrWhiteSpace(value))
+                {
+                    error = "IndexTranslate model cannot be empty.";
+                    return false;
+                }
+
+                return SetTopLevelValue(file, "indexTranslateModel", QuoteYamlString(value.Trim()), out error);
             }
 
             if (string.Equals(key, "model", StringComparison.OrdinalIgnoreCase))

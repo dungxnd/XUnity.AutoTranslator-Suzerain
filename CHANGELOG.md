@@ -2,10 +2,19 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.2.1
+
+#### Change
+* `IndexTranslate` now works out of the box against Bilibili's public endpoint and `Index-Translate-35B-A3B` model; shared `url`/`model` sample values no longer apply to it. Self-hosted models can use `indexTranslateUrl`/`indexTranslateModel`
+
+#### Bug Fix
+* The main UI recreates a window with its previous visibility after a scene change or GUI error instead of staying hidden; the active translation count is labeled `Processing`
+* Long multi-paragraph texts are no longer dropped at the core's 200-character `MaxCharactersPerTranslation` limit when an LLM endpoint is selected; the endpoint now receives and splits them
+
 ### 6.2.0
 
 #### New
-* `IndexTranslate` endpoint for bilibili's Index-Translate model family: native translation prompt, glossary terminology constraints, thinking-tag suppression, and support for the free 35B OpenAI-compatible API or self-hosted 2B/9B servers
+* `IndexTranslate` endpoint for bilibili's Index-Translate model family: native translation prompt, glossary terminology constraints, and thinking-tag suppression
 
 #### Bug Fix
 * Packaging projects now build after all translator projects, so the BepInEx-IL2CPP and MelonMod packages no longer ship an empty `Translators` folder; the LLM translator DLL and sample `LLMConfig.yaml` are included as well

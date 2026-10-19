@@ -9,22 +9,26 @@
 #   OpenAI:    https://api.openai.com/v1/chat/completions  (apiKeyRequired: true)
 #   Ollama:    http://localhost:11434/api/chat             (apiKeyRequired: false)
 #   LM Studio: http://localhost:1234/v1/chat/completions   (apiKeyRequired: false)
-#   Index:     https://index-translate.bilibili.com/v1/chat/completions (apiKeyRequired: false)
+#   Index:     https://index-translate.bilibili.com/v1/chat/completions (default for IndexTranslate; apiKeyRequired: false)
 #
 # All settings for all four endpoints live in this file. The in-game
 # Advanced window edits these values in place.
 #
-# IndexTranslate uses the model's native translation prompt. Set url/model to
-# the Index values above; systemPrompt and glossaryPrompt are ignored in that
+# IndexTranslate uses the model's native translation prompt and defaults to
+# the free public API. systemPrompt and glossaryPrompt are ignored in that
 # mode. Recommended Index modelParams: temperature: 0, max_tokens: 4096.
+#
+# url/model below are used by OpenAiTranslate, OllamaTranslate, and LmStudioTranslate.
+# IndexTranslate uses the public API unless you uncomment its overrides below.
 
 apiKey: "None"
 apiKeyRequired: false
 url: "http://localhost:1234/v1/chat/completions"
 model: "model-identifier"
-# IndexTranslate model examples:
-#   Free API:    Index-Translate-35B-A3B
-#   Self-hosted: IndexTeam/Index-Translate-9B (or the server's alias)
+
+# Optional IndexTranslate overrides. Leave commented out to use the free public API.
+# indexTranslateUrl: "http://127.0.0.1:8000/v1/chat/completions"
+# indexTranslateModel: "IndexTeam/Index-Translate-9B"
 
 # Batching: short lines are grouped to amortize the system prompt.
 # Long texts are sent on their own and split into smaller blocks when needed.

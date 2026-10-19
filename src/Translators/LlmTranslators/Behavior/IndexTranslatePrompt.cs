@@ -8,6 +8,8 @@ namespace XUnity.AutoTranslator.LlmTranslators.Behavior;
 
 public static class IndexTranslatePrompt
 {
+    public const string PublicUrl = "https://index-translate.bilibili.com/v1/chat/completions";
+    public const string PublicModel = "Index-Translate-35B-A3B";
     public const string DefaultTemperature = "0";
     public const string DefaultMaxTokens = "4096";
 
@@ -121,9 +123,15 @@ public static class IndexTranslatePrompt
         userMessage["content"] = prompt;
         messages.Add(userMessage);
 
+        var configuredModel = config.IndexTranslateModel;
+        var model = configuredModel == null ? PublicModel : configuredModel.Trim();
+
+        if (model.Length == 0)
+            model = PublicModel;
+
         var requestBody = new JSONObject
         {
-            ["model"] = config.Model,
+            ["model"] = model,
             ["stream"] = false,
             ["messages"] = messages,
             ["chat_template_kwargs"] = new JSONObject

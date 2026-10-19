@@ -142,6 +142,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Tests
             Assert.Equal( "Chào người anh em", Lookup( cache, "Hello brother" ) );
             Assert.Equal( "\"Chào người anh em\"", Lookup( cache, "\"Hello brother\"" ) );
             Assert.Equal( "<Chào người anh em>", Lookup( cache, "<Hello brother>" ) );
+            Assert.Equal( "1. Chào người anh em", Lookup( cache, "1. Hello brother" ) );
             Assert.Equal( "1. \"Chào người anh em\"", Lookup( cache, "1. \"Hello brother\"" ) );
             Assert.Equal( "\"1. Chào người anh em\"", Lookup( cache, "\"1. Hello brother\"" ) );
 
@@ -155,6 +156,8 @@ namespace XUnity.AutoTranslator.Plugin.Core.Tests
             Assert.Equal( "\"Đã dịch\"", Lookup( cache, "\"Quoted only\"" ) );
 
             Assert.False( cache.IsTranslatable( "\"Chào người anh em\"", false, TranslationScopes.None ) );
+            Assert.False( cache.IsTranslatable( "<Chào người anh em>", false, TranslationScopes.None ) );
+            Assert.False( cache.IsTranslatable( "1. Chào người anh em", false, TranslationScopes.None ) );
             Assert.False( cache.IsTranslatable( "1. Chào buổi sáng", false, TranslationScopes.None ) );
             Assert.False( cache.IsTranslatable( "\"Chào buổi sáng\"", false, TranslationScopes.None ) );
             Assert.False( cache.IsTranslatable( "<Chào buổi sáng>", false, TranslationScopes.None ) );

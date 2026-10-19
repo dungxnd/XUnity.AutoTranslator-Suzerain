@@ -51,7 +51,13 @@ public class IndexTranslateTranslatorEndpoint : HttpEndpoint, ITranslateEndpoint
 
         var requestData = IndexTranslatePrompt.GetRequestData(config, prompt);
 
-        var request = new XUnityWebRequest("POST", config.Url, requestData);
+        var configuredUrl = config.IndexTranslateUrl;
+        var url = configuredUrl == null ? IndexTranslatePrompt.PublicUrl : configuredUrl.Trim();
+
+        if (url.Length == 0)
+            url = IndexTranslatePrompt.PublicUrl;
+
+        var request = new XUnityWebRequest("POST", url, requestData);
         request.Headers[HttpRequestHeader.ContentType] = "application/json";
         request.Headers["User-Agent"] = "Index-Translate-Client/1.0";
 
@@ -93,8 +99,37 @@ public class IndexTranslateTranslatorEndpoint : HttpEndpoint, ITranslateEndpoint
 
     public bool TryGetSetting(string key, out string value)
     {
+        var config = _configProvider?.Current;
+        if (config == null)
+        {
+            value = string.Empty;
+            return false;
+        }
+
+        if (string.Equals(key, "url", StringComparison.OrdinalIgnoreCase))
+        {
+            var configuredUrl = config.IndexTranslateUrl;
+            value = configuredUrl == null ? IndexTranslatePrompt.PublicUrl : configuredUrl.Trim();
+
+            if (value.Length == 0)
+                value = IndexTranslatePrompt.PublicUrl;
+
+            return true;
+        }
+
+        if (string.Equals(key, "model", StringComparison.OrdinalIgnoreCase))
+        {
+            var configuredModel = config.IndexTranslateModel;
+            value = configuredModel == null ? IndexTranslatePrompt.PublicModel : configuredModel.Trim();
+
+            if (value.Length == 0)
+                value = IndexTranslatePrompt.PublicModel;
+
+            return true;
+        }
+
         if (!BaseEndpointBehavior.TryGetSetting(
-            _configProvider?.Current,
+            config,
             key,
             out value,
             IndexTranslatePrompt.DefaultTemperature,
@@ -122,6 +157,11 @@ public class IndexTranslateTranslatorEndpoint : HttpEndpoint, ITranslateEndpoint
             error = "The endpoint is not initialized.";
             return false;
         }
+
+        if (string.Equals(key, "url", StringComparison.OrdinalIgnoreCase))
+            key = "indexTranslateUrl";
+        else if (string.Equals(key, "model", StringComparison.OrdinalIgnoreCase))
+            key = "indexTranslateModel";
 
         return _configProvider.TrySetSetting(key, value, out error);
     }
