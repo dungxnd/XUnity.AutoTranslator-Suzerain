@@ -7,6 +7,9 @@ This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from 
 #### New
 * `IndexTranslate` endpoint for bilibili's Index-Translate model family: native translation prompt, glossary terminology constraints, thinking-tag suppression, and support for the free 35B OpenAI-compatible API or self-hosted 2B/9B servers
 
+#### Bug Fix
+* Packaging projects now build after all translator projects, so the BepInEx-IL2CPP and MelonMod packages no longer ship an empty `Translators` folder; the LLM translator DLL and sample `LLMConfig.yaml` are included as well
+
 ### 6.1.0
 
 #### New
