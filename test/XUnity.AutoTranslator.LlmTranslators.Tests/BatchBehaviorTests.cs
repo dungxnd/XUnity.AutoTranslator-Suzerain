@@ -337,6 +337,13 @@ public class BatchBehaviorTests
         Assert.Equal(int.MaxValue, BaseEndpointBehavior.GetMaxCharactersPerTranslation(new LlmConfig { MaxCharactersPerTranslation = 0 }));
     }
 
+    [Fact]
+    public void StripThinkBlockRemovesReasoningPrefix()
+    {
+        Assert.Equal("Hello", BaseEndpointBehavior.StripThinkBlock("<think>reasoning</think>Hello"));
+        Assert.Equal("Hello", BaseEndpointBehavior.StripThinkBlock("Hello"));
+    }
+
     private static int CountOccurrences(string value, string token)
     {
         var count = 0;

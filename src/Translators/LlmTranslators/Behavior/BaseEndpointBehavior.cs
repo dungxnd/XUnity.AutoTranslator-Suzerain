@@ -102,7 +102,7 @@ public static class BaseEndpointBehavior
         return requestBody.ToString();
     }
 
-    private static void SetParameter(JSONObject target, string key, object value)
+    internal static void SetParameter(JSONObject target, string key, object value)
     {
         var text = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
 
@@ -126,17 +126,22 @@ public static class BaseEndpointBehavior
         return true;
     }
 
-    public static bool TryGetSetting(LlmConfig? config, string key, out string value)
+    public static bool TryGetSetting(
+        LlmConfig? config,
+        string key,
+        out string value,
+        string defaultTemperature = "0.2",
+        string defaultMaxTokens = "default")
     {
         value = string.Empty;
         if (config == null)
             return false;
 
         if (string.Equals(key, "Temperature", StringComparison.OrdinalIgnoreCase))
-            return TryGetModelParameter(config, "temperature", "0.2", out value);
+            return TryGetModelParameter(config, "temperature", defaultTemperature, out value);
 
         if (string.Equals(key, "max_tokens", StringComparison.OrdinalIgnoreCase))
-            return TryGetModelParameter(config, "max_tokens", "default", out value);
+            return TryGetModelParameter(config, "max_tokens", defaultMaxTokens, out value);
 
         if (string.Equals(key, "top_p", StringComparison.OrdinalIgnoreCase))
             return TryGetModelParameter(config, "top_p", "0.9", out value);
@@ -399,6 +404,11 @@ public static class BaseEndpointBehavior
         builder.Append(block);
     }
 
+    public static string BuildMarkedContent(string[] raws)
+    {
+        return BuildUserContent(raws);
+    }
+
     private static string BuildUserContent(string[] raws)
     {
         if (raws.Length == 1)
@@ -438,24 +448,37 @@ public static class BaseEndpointBehavior
         return ConstructGlossaryPrompt(new[] { raw }, config);
     }
 
-    public static string ConstructGlossaryPrompt(string[] raws, LlmConfig config)
+    public static List<GlossaryLine> GetMatchingGlossaryLines(string[] raws, LlmConfig config)
     {
-        if (config.GlossaryLines == null)
-            return string.Empty;
+        var matchingLines = new List<GlossaryLine>();
 
-        var matchingLines = new StringBuilder();
+        if (config.GlossaryLines == null || raws == null || raws.Length == 0)
+            return matchingLines;
 
         foreach (var line in config.GlossaryLines)
         {
             if (string.IsNullOrEmpty(line.Raw) || string.IsNullOrEmpty(line.Result))
                 continue;
 
-            if (raws.Any(raw => raw.IndexOf(line.Raw, StringComparison.Ordinal) >= 0))
-                matchingLines.Append("- ").Append(line.Raw).Append(": ").Append(line.Result).Append('\n');
+            if (raws.Any(raw => raw != null && raw.IndexOf(line.Raw, StringComparison.Ordinal) >= 0))
+                matchingLines.Add(line);
         }
 
-        if (matchingLines.Length == 0)
+        return matchingLines;
+    }
+
+    public static string ConstructGlossaryPrompt(string[] raws, LlmConfig config)
+    {
+        var matchingGlossary = GetMatchingGlossaryLines(raws, config);
+        if (matchingGlossary.Count == 0)
             return string.Empty;
+
+        var matchingLines = new StringBuilder();
+
+        foreach (var line in matchingGlossary)
+        {
+            matchingLines.Append("- ").Append(line.Raw).Append(": ").Append(line.Result).Append('\n');
+        }
 
         var prompt = new StringBuilder(config.GlossaryPrompt);
         if (prompt.Length > 0 && prompt[prompt.Length - 1] != '\n')
@@ -507,6 +530,23 @@ public static class BaseEndpointBehavior
         }
 
         return true;
+    }
+
+    public static string StripThinkBlock(string content)
+    {
+        if (string.IsNullOrEmpty(content))
+            return content;
+
+        var end = content.IndexOf("</think>", StringComparison.OrdinalIgnoreCase);
+        if (end >= 0)
+            content = content.Substring(end + "</think>".Length);
+
+        content = content.Trim();
+
+        if (content.StartsWith("<think>", StringComparison.OrdinalIgnoreCase))
+            content = content.Substring("<think>".Length).Trim();
+
+        return content;
     }
 
     public static string[]? ExtractTranslations(string content, string[] untranslatedTexts, LlmConfig config)

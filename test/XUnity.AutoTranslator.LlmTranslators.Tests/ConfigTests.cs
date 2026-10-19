@@ -352,7 +352,8 @@ public class ConfigTests
             {
                 new OpenAiTranslatorEndpoint(),
                 new OllamaTranslatorEndpoint(),
-                new LmStudioTranslatorEndpoint()
+                new LmStudioTranslatorEndpoint(),
+                new IndexTranslateTranslatorEndpoint()
             };
 
             foreach (var endpoint in endpoints)
@@ -908,6 +909,156 @@ public class ConfigTests
         }
     }
 
+    [Fact]
+    public void IndexTranslateEndpointUsesNativePromptAndRecommendedDefaults()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+
+            var context = new TestRequestCreationContext(new[] { "hello" });
+            endpoint.OnCreateRequest(context);
+
+            Assert.NotNull(context.Request);
+            Assert.Equal("Index-Translate-Client/1.0", context.Request!.Headers["User-Agent"]);
+
+            var payload = JSON.Parse(context.Request.Data);
+            Assert.Equal("Index-Translate-35B-A3B", payload["model"].Value);
+            Assert.Equal(0.0, payload["temperature"].AsDouble);
+            Assert.Equal(4096, payload["max_tokens"].AsInt);
+            Assert.False(payload["chat_template_kwargs"]["enable_thinking"].AsBool);
+
+            var messages = payload["messages"].AsArray;
+            Assert.Equal(1, messages.Count);
+            Assert.Equal("user", messages[0]["role"].Value);
+            Assert.Contains("请将以下中文文本翻译为英语", messages[0]["content"].Value);
+            Assert.Contains("hello", messages[0]["content"].Value);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointUsesConfiguredModelParams()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\nmodelParams:\n  temperature: 0.3\n  max_tokens: 2048\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+
+            var context = new TestRequestCreationContext(new[] { "hello" });
+            endpoint.OnCreateRequest(context);
+
+            var payload = JSON.Parse(context.Request!.Data);
+            Assert.Equal(0.3, payload["temperature"].AsDouble, 3);
+            Assert.Equal(2048, payload["max_tokens"].AsInt);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointBatchesWithCanonicalConstraints()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\nmaxTranslationsPerRequest: 4\nglossary:\n  - raw: 碳纤维\n    result: carbon fiber\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+
+            var context = new TestRequestCreationContext(new[] { "碳纤维很好", "第二行" });
+            endpoint.OnCreateRequest(context);
+
+            var content = JSON.Parse(context.Request!.Data)["messages"][0]["content"].Value;
+
+            Assert.Contains("【源文】", content);
+            Assert.Contains("<<<1>>>", content);
+            Assert.Contains("<<<2>>>", content);
+            Assert.Contains("【约束要求】", content);
+            Assert.Contains("专名/术语对照: 碳纤维→carbon fiber", content);
+            Assert.Contains("保持原来的顺序、块数和换行", content);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointExposesEffectiveDefaults()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+            var settings = Assert.IsAssignableFrom<ITranslateEndpointSettingsProvider>(endpoint);
+
+            Assert.True(settings.TryGetSetting("Temperature", out var temperature));
+            Assert.Equal("0", temperature);
+            Assert.True(settings.TryGetSetting("max_tokens", out var maxTokens));
+            Assert.Equal("4096", maxTokens);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void IndexTranslateEndpointUsesAutoSourceAndMappedTarget()
+    {
+        var gameDirectory = CreateGameDirectory(out var translatorDirectory, out var configDirectory);
+
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(configDirectory, Configuration.DefaultFileName),
+                "apiKeyRequired: false\nurl: https://index-translate.bilibili.com/v1/chat/completions\nmodel: Index-Translate-35B-A3B\n");
+
+            var endpoint = new IndexTranslateTranslatorEndpoint();
+            endpoint.Initialize(new TestInitializationContext(translatorDirectory));
+
+            var context = new TestRequestCreationContext(new[] { "hello" }, "auto", "ko");
+            endpoint.OnCreateRequest(context);
+
+            var content = JSON.Parse(context.Request!.Data)["messages"][0]["content"].Value;
+            Assert.Contains("请将以下文本翻译为韩语", content);
+            Assert.DoesNotContain("auto", content);
+        }
+        finally
+        {
+            Directory.Delete(gameDirectory, recursive: true);
+        }
+    }
+
     private static string CreateGameDirectory(out string translatorDirectory, out string configDirectory)
     {
         var gameDirectory = Path.Combine(Path.GetTempPath(), $"LlmTranslatorTests-{Guid.NewGuid():N}");
@@ -956,17 +1107,19 @@ public class ConfigTests
 
     private sealed class TestRequestCreationContext : IHttpRequestCreationContext
     {
-        public TestRequestCreationContext(string[] texts)
+        public TestRequestCreationContext(string[] texts, string sourceLanguage = "zh", string destinationLanguage = "en")
         {
             UntranslatedTexts = texts;
+            SourceLanguage = sourceLanguage;
+            DestinationLanguage = destinationLanguage;
         }
 
         public string UntranslatedText => UntranslatedTexts[0];
         public string[] UntranslatedTexts { get; }
         public UntranslatedTextInfo UntranslatedTextInfo => null!;
         public UntranslatedTextInfo[] UntranslatedTextInfos => null!;
-        public string SourceLanguage => "zh";
-        public string DestinationLanguage => "en";
+        public string SourceLanguage { get; }
+        public string DestinationLanguage { get; }
         public object UserState { get; set; } = null!;
         public XUnityWebRequest? Request { get; private set; }
 

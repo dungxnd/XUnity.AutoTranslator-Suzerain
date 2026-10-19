@@ -1,6 +1,6 @@
 ﻿# XUnity Auto Translator — Suzerain Fork
 
-> **Fork version: 6.1.0**
+> **Fork version: 6.2.0**
 >
 > A user-focused fork of [XUnity.AutoTranslator](https://github.com/bbepis/XUnity.AutoTranslator), built for readable UI at any resolution, safer translation files, and fewer “restart the game” moments.
 >
@@ -262,10 +262,11 @@ Here's a list of translators supported out of the box:
    * Example Response (only body): Hello
    * Known implementations that can be used with CustomTranslate:
      * ezTrans: https://github.com/HelloKS/ezTransWeb
- * Built-in LLM chat-completion endpoints. All three share one `LLMConfig.yaml` configuration file for prompts, glossary, batching, and model parameters, with character-budgeted batching, long-text chunking, live config reloads, a temperature readout, and an **Advanced** editor that writes back to the same file.
+ * Built-in LLM chat-completion endpoints. All four share one `LLMConfig.yaml` configuration file for prompts, glossary, batching, and model parameters, with character-budgeted batching, long-text chunking, live config reloads, a temperature readout, and an **Advanced** editor that writes back to the same file.
    * OpenAiTranslate targets OpenAI or any OpenAI-compatible chat-completions server. Set `apiKeyRequired: true` when the server requires a bearer token.
    * OllamaTranslate targets Ollama's `/api/chat` endpoint.
    * LmStudioTranslate targets LM Studio's OpenAI-compatible `/v1/chat/completions` endpoint.
+   * IndexTranslate targets [bilibili's Index-Translate](https://github.com/bilibili/Index-Translate) model family through its OpenAI-compatible API. It uses the model's native translation prompt, turns glossary entries into terminology constraints, disables thinking, and works with the free 35B API or a self-hosted 2B/9B server. Set the URL and model in `LLMConfig.yaml`; the free API requires no key.
    * See [docs/llm-translators.md](docs/llm-translators.md) for the shared YAML configuration.
 
 *NOTE: If you use any of the online translators that does not require some form of authentication, that this plugin may break at any time.*

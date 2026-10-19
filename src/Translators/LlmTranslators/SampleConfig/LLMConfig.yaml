@@ -1,4 +1,4 @@
-# LLMConfig.yaml — shared configuration for the OpenAiTranslate, OllamaTranslate, and LmStudioTranslate endpoints.
+# LLMConfig.yaml — shared configuration for the OpenAiTranslate, OllamaTranslate, LmStudioTranslate, and IndexTranslate endpoints.
 # Select the endpoint in Config.ini:
 #
 #   [Service]
@@ -9,14 +9,22 @@
 #   OpenAI:    https://api.openai.com/v1/chat/completions  (apiKeyRequired: true)
 #   Ollama:    http://localhost:11434/api/chat             (apiKeyRequired: false)
 #   LM Studio: http://localhost:1234/v1/chat/completions   (apiKeyRequired: false)
+#   Index:     https://index-translate.bilibili.com/v1/chat/completions (apiKeyRequired: false)
 #
-# All settings for all three endpoints live in this file. The in-game
+# All settings for all four endpoints live in this file. The in-game
 # Advanced window edits these values in place.
+#
+# IndexTranslate uses the model's native translation prompt. Set url/model to
+# the Index values above; systemPrompt and glossaryPrompt are ignored in that
+# mode. Recommended Index modelParams: temperature: 0, max_tokens: 4096.
 
 apiKey: "None"
 apiKeyRequired: false
 url: "http://localhost:1234/v1/chat/completions"
 model: "model-identifier"
+# IndexTranslate model examples:
+#   Free API:    Index-Translate-35B-A3B
+#   Self-hosted: IndexTeam/Index-Translate-9B (or the server's alias)
 
 # Batching: short lines are grouped to amortize the system prompt.
 # Long texts are sent on their own and split into smaller blocks when needed.
@@ -26,6 +34,7 @@ maxCharactersPerRequest: 4000
 maxCharactersPerTranslation: 2000
 
 # max_tokens is sent to OpenAI/LM Studio and mapped to Ollama's num_predict.
+# For IndexTranslate, temperature 0 is recommended; max_tokens is the response budget.
 modelParams:
   temperature: 0.2
   max_tokens: 4096
@@ -34,6 +43,7 @@ modelParams:
   frequency_penalty: 0
   presence_penalty: 0
 
+# Used by OpenAI/Ollama/LM Studio. IndexTranslate uses its native prompt instead.
 systemPrompt: |
   Translate the source text into fluent English while preserving the original tone and meaning.
   Do not add explanations, notes, markdown, or quotation marks.
@@ -46,6 +56,7 @@ glossaryPrompt: |
   ## Terms
 
 # Optional glossary entries, matched against the source text.
+# IndexTranslate sends matching entries as hard terminology constraints.
 glossary:
   - raw: "Example term"
     result: "Example translation"

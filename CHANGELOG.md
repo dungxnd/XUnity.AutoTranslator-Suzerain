@@ -2,6 +2,11 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.2.0
+
+#### New
+* `IndexTranslate` endpoint for bilibili's Index-Translate model family: native translation prompt, glossary terminology constraints, thinking-tag suppression, and support for the free 35B OpenAI-compatible API or self-hosted 2B/9B servers
+
 ### 6.1.0
 
 #### New
