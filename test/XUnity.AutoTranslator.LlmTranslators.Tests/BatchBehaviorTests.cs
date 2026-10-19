@@ -297,6 +297,35 @@ public class BatchBehaviorTests
     }
 
     [Fact]
+    public void SingleTextStripsUnexpectedBatchMarkers()
+    {
+        var result = BaseEndpointBehavior.ExtractTranslations(
+            "<<<1>>>\nFirst paragraph.\n\n<<<2>>>\nSecond paragraph.",
+            new[] { "source" },
+            CreateConfig());
+
+        Assert.Equal(new[] { "First paragraph.\n\nSecond paragraph." }, result);
+    }
+
+    [Fact]
+    public void PlannedSingleChunkStripsUnexpectedBatchMarkers()
+    {
+        var config = CreateConfig();
+        var text = "First paragraph.\n\nSecond paragraph.";
+        var plan = BaseEndpointBehavior.CreateRequestPlan(config, new[] { text });
+
+        Assert.Single(plan.Chunks);
+
+        var result = BaseEndpointBehavior.ExtractPlannedTranslations(
+            "<<<1>>>\nFirst paragraph.\n\n<<<2>>>\nSecond paragraph.",
+            plan,
+            new[] { text },
+            config);
+
+        Assert.Equal(new[] { "First paragraph.\n\nSecond paragraph." }, result);
+    }
+
+    [Fact]
     public void RequestPlanFallsBackWhenModelIgnoresChunkMarkers()
     {
         var config = CreateConfig();

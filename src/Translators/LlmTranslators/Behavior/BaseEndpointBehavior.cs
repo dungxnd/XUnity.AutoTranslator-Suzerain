@@ -563,6 +563,8 @@ public static class BaseEndpointBehavior
                 var marked = TryParseMarkers(content, 1);
                 if (marked != null)
                     return CleanupTranslations(marked, untranslatedTexts, config);
+
+                content = StripBatchMarkers(content);
             }
 
             return CleanupTranslations(new[] { content }, untranslatedTexts, config);
@@ -668,6 +670,10 @@ public static class BaseEndpointBehavior
         for (var i = 0; i < translations.Length; i++)
         {
             var result = ValidateAndCleanupTranslation(raws[i], translations[i], config);
+            if (string.IsNullOrEmpty(result))
+                return null;
+
+            result = StripBatchMarkers(result);
             if (string.IsNullOrEmpty(result))
                 return null;
 

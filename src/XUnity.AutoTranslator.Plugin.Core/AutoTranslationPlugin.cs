@@ -609,6 +609,8 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void OnLevelWasLoaded( int id )
       {
+         RestoreWindowsAfterSceneLoad();
+
          if( !UnityFeatures.SupportsSceneManager || ( UnityFeatures.SupportsSceneManager && _isCalledFromSceneManager ) )
          {
             if( Settings.EnableTextureScanOnSceneLoad && ( Settings.EnableTextureDumping || Settings.EnableTextureTranslation ) )
@@ -624,6 +626,14 @@ namespace XUnity.AutoTranslator.Plugin.Core
                UnloadUnusedAssets();
             }
          }
+      }
+
+      private void RestoreWindowsAfterSceneLoad()
+      {
+         if( MainWindow != null ) MainWindow.IsShown = _mainWindowWasShown;
+         if( TranslationAggregatorWindow != null ) TranslationAggregatorWindow.IsShown = _translationAggregatorWasShown;
+         if( TranslationAggregatorOptionsWindow != null ) TranslationAggregatorOptionsWindow.IsShown = _translationAggregatorOptionsWasShown;
+         if( LlmAdvancedWindow != null ) LlmAdvancedWindow.IsShown = _llmAdvancedWindowWasShown;
       }
 
       private static void UnloadUnusedAssets()
@@ -2840,30 +2850,6 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void HandleInput()
       {
-         if( UnityInput.Current.GetKeyDown( KeyCode.Escape ) )
-         {
-            if( LlmAdvancedWindow != null && LlmAdvancedWindow.IsShown )
-            {
-               LlmAdvancedWindow.IsShown = false;
-               return;
-            }
-            if( TranslationAggregatorOptionsWindow != null && TranslationAggregatorOptionsWindow.IsShown )
-            {
-               TranslationAggregatorOptionsWindow.IsShown = false;
-               return;
-            }
-            if( TranslationAggregatorWindow != null && TranslationAggregatorWindow.IsShown )
-            {
-               TranslationAggregatorWindow.IsShown = false;
-               return;
-            }
-            if( MainWindow != null && MainWindow.IsShown )
-            {
-               MainWindow.IsShown = false;
-               return;
-            }
-         }
-
          var isAltPressed = UnityInput.Current.GetKey( KeyCode.LeftAlt ) || UnityInput.Current.GetKey( KeyCode.RightAlt );
          if( isAltPressed )
          {
@@ -2970,6 +2956,11 @@ namespace XUnity.AutoTranslator.Plugin.Core
                ConnectionTrackingWebClient.CheckServicePoints();
             }
 
+            if( MainWindow != null ) _mainWindowWasShown = MainWindow.IsShown;
+            if( TranslationAggregatorWindow != null ) _translationAggregatorWasShown = TranslationAggregatorWindow.IsShown;
+            if( TranslationAggregatorOptionsWindow != null ) _translationAggregatorOptionsWasShown = TranslationAggregatorOptionsWindow.IsShown;
+            if( LlmAdvancedWindow != null ) _llmAdvancedWindowWasShown = LlmAdvancedWindow.IsShown;
+
             HandleInputSafe();
          }
          catch( Exception e )
@@ -3012,6 +3003,9 @@ namespace XUnity.AutoTranslator.Plugin.Core
          {
             GUIUtil.UIScale = 1f;
          }
+
+         var previousDepth = GUI.depth;
+         GUI.depth = -1000;
 
          try
          {
@@ -3083,6 +3077,8 @@ namespace XUnity.AutoTranslator.Plugin.Core
          }
          finally
          {
+            GUI.depth = previousDepth;
+
             if( hasMatrix )
             {
                try

@@ -2,6 +2,12 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.2.2
+
+#### Bug Fix
+* LLM translations no longer leak `<<<n>>>` batch markers into the game text; marker lines are stripped during cleanup, including when a single long text is split into multiple marked blocks
+* Plugin windows no longer disappear on game screen changes: Escape no longer closes them, open windows are restored after scene loads, and the overlay draws above other IMGUI
+
 ### 6.2.1
 
 #### Change
