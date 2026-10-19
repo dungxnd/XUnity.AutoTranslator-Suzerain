@@ -21,6 +21,12 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.UIElements
    {
       public static readonly Type[] All = new[] {
          typeof( TextElement_text_Hook ),
+#if MANAGED
+         typeof( TextElement_SetText_StringBuilder_Hook ),
+         typeof( TextElement_SetText_CharArray_Range_Hook ),
+         typeof( TextElement_SetText_Int_Hook ),
+         typeof( TextElement_SetText_Float_Hook ),
+#endif
       };
    }
 
@@ -66,4 +72,138 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.UIElements
       }
 #endif
    }
+
+#if MANAGED
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TextElement_SetText_StringBuilder_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TextElement != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         return AccessToolsShim.Method( UnityTypes.TextElement?.ClrType, "SetText", new[] { typeof( StringBuilder ) } );
+      }
+
+      static void Postfix( object __instance )
+      {
+         AutoTranslationPlugin.Current.Hook_TextChanged( __instance, false );
+      }
+
+      static Action<object, StringBuilder> _original;
+
+      static void MM_Init( object detour )
+      {
+         _original = detour.GenerateTrampolineEx<Action<object, StringBuilder>>();
+      }
+
+      static void MM_Detour( object __instance, StringBuilder value )
+      {
+         _original( __instance, value );
+
+         Postfix( __instance );
+      }
+   }
+
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TextElement_SetText_CharArray_Range_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TextElement != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         return AccessToolsShim.Method( UnityTypes.TextElement?.ClrType, "SetText", new[] { typeof( char[] ), typeof( int ), typeof( int ) } );
+      }
+
+      static void Postfix( object __instance )
+      {
+         AutoTranslationPlugin.Current.Hook_TextChanged( __instance, false );
+      }
+
+      static Action<object, char[], int, int> _original;
+
+      static void MM_Init( object detour )
+      {
+         _original = detour.GenerateTrampolineEx<Action<object, char[], int, int>>();
+      }
+
+      static void MM_Detour( object __instance, char[] value, int start, int length )
+      {
+         _original( __instance, value, start, length );
+
+         Postfix( __instance );
+      }
+   }
+
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TextElement_SetText_Int_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TextElement != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         return AccessToolsShim.Method( UnityTypes.TextElement?.ClrType, "SetText", new[] { typeof( int ) } );
+      }
+
+      static void Postfix( object __instance )
+      {
+         AutoTranslationPlugin.Current.Hook_TextChanged( __instance, false );
+      }
+
+      static Action<object, int> _original;
+
+      static void MM_Init( object detour )
+      {
+         _original = detour.GenerateTrampolineEx<Action<object, int>>();
+      }
+
+      static void MM_Detour( object __instance, int value )
+      {
+         _original( __instance, value );
+
+         Postfix( __instance );
+      }
+   }
+
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TextElement_SetText_Float_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TextElement != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         return AccessToolsShim.Method( UnityTypes.TextElement?.ClrType, "SetText", new[] { typeof( float ), typeof( string ) } );
+      }
+
+      static void Postfix( object __instance )
+      {
+         AutoTranslationPlugin.Current.Hook_TextChanged( __instance, false );
+      }
+
+      static Action<object, float, string> _original;
+
+      static void MM_Init( object detour )
+      {
+         _original = detour.GenerateTrampolineEx<Action<object, float, string>>();
+      }
+
+      static void MM_Detour( object __instance, float value, string format )
+      {
+         _original( __instance, value, format );
+
+         Postfix( __instance );
+      }
+   }
+#endif
 }

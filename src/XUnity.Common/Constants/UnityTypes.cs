@@ -100,6 +100,8 @@ namespace XUnity.Common.Constants
       public static readonly TypeContainer TextMesh = FindType( "UnityEngine.TextMesh" );
       public static readonly TypeContainer Text = FindType( "UnityEngine.UI.Text" );
       public static readonly TypeContainer TextElement = FindType( "UnityEngine.UIElements.TextElement" );
+      public static readonly TypeContainer UIDocument = FindType( "UnityEngine.UIElements.UIDocument" );
+      public static readonly TypeContainer UIToolkitTextField = FindType( "UnityEngine.UIElements.TextField" );
       public static readonly TypeContainer Image = FindType( "UnityEngine.UI.Image" );
       public static readonly TypeContainer RawImage = FindType( "UnityEngine.UI.RawImage" );
       public static readonly TypeContainer MaskableGraphic = FindType( "UnityEngine.UI.MaskableGraphic" );

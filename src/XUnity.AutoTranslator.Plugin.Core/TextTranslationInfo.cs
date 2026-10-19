@@ -79,7 +79,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
             if( UnityTypes.Typewriter != null )
             {
                var component = ui as Component;
-               if( ui != null && component.GetComponent( UnityTypes.Typewriter.UnityType ).TryCastTo<MonoBehaviour>( out var typeWriter ) )
+               if( component != null && component.GetComponent( UnityTypes.Typewriter.UnityType ).TryCastTo<MonoBehaviour>( out var typeWriter ) )
                {
                   _typewriter = typeWriter;
                }

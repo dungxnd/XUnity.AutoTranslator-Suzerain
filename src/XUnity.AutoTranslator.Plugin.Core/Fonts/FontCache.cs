@@ -2,11 +2,15 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using UnityEngine;
 using XUnity.AutoTranslator.Plugin.Core.Configuration;
+using XUnity.AutoTranslator.Plugin.Core.Extensions;
 using XUnity.Common.Constants;
+using XUnity.Common.Extensions;
 using XUnity.Common.Logging;
+using XUnity.Common.Utilities;
 
 namespace XUnity.AutoTranslator.Plugin.Core.Fonts
 {
@@ -111,6 +115,73 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
          }
 
          return FallbackFontTextMeshPro;
+      }
+
+      private static readonly MethodInfo TmpTryAddCharacters = FindTmpTryAddCharacters();
+
+      private static MethodInfo FindTmpTryAddCharacters()
+      {
+         var type = UnityTypes.TMP_FontAsset?.ClrType;
+         if( type == null ) return null;
+
+         return type
+            .GetMethods( BindingFlags.Instance | BindingFlags.Public )
+            .Where( x => x.Name == "TryAddCharacters" )
+            .Where( x => x.GetParameters().Length >= 2 )
+            .Where( x => x.GetParameters()[ 0 ].ParameterType == typeof( string ) )
+            .Where( x => x.GetParameters()[ 1 ].ParameterType.IsByRef )
+            .FirstOrDefault();
+      }
+
+      public static void PrewarmTranslation( object ui, string text )
+      {
+         if( ui == null || string.IsNullOrEmpty( text ) ) return;
+
+         try
+         {
+            var type = ui.GetUnityType();
+
+            if( UnityTypes.Text != null && UnityTypes.Text.IsAssignableFrom( type ) )
+            {
+               var font = UnityTypes.Text_Properties.Font?.Get( ui ) as Font;
+               if( font != null )
+               {
+                  var sizeValue = UnityTypes.Text_Properties.FontSize?.Get( ui );
+                  var size = sizeValue != null ? (int)sizeValue : font.fontSize;
+                  if( size > 0 )
+                  {
+                     var requestCharacters = font.GetType().GetMethod( "RequestCharactersInTexture", new[] { typeof( string ), typeof( int ) } );
+                     requestCharacters?.Invoke( font, new object[] { text, size } );
+                  }
+               }
+            }
+            else if( UnityTypes.TMP_Text != null && UnityTypes.TMP_Text.IsAssignableFrom( type ) )
+            {
+               var font = ui.GetType().CachedProperty( "font" )?.Get( ui );
+               if( font != null && TmpTryAddCharacters != null )
+               {
+                  var parameters = TmpTryAddCharacters.GetParameters();
+                  var arguments = new object[ parameters.Length ];
+                  arguments[ 0 ] = text;
+                  for( int i = 1 ; i < arguments.Length ; i++ )
+                  {
+                     arguments[ i ] = parameters[ i ].ParameterType == typeof( bool ) ? (object)false : null;
+                  }
+
+                  TmpTryAddCharacters.Invoke( font, arguments );
+
+                  var missing = arguments.Length > 1 ? arguments[ 1 ] as string : null;
+                  if( !string.IsNullOrEmpty( missing ) )
+                  {
+                     XuaLogger.AutoTranslator.Debug( $"TextMesh Pro font is missing characters after prewarming: {missing}" );
+                  }
+               }
+            }
+         }
+         catch( Exception e )
+         {
+            XuaLogger.AutoTranslator.Debug( e, "An error occurred while prewarming translated text glyphs." );
+         }
       }
    }
 }

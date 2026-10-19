@@ -1008,6 +1008,11 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   info.IsCurrentlySettingText = true;
                }
 
+               if( isTranslated )
+               {
+                  FontCache.PrewarmTranslation( ui, text );
+               }
+
                if( Settings.EnableTextPathLogging )
                {
                   var path = ui.GetPath();
@@ -3652,11 +3657,182 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private void ManualHookForComponents( bool activeOnly = false )
       {
+         if( !Settings.EnableTextureTranslation && !Settings.EnableTextureDumping )
+         {
+            ManualHookForTextComponents( activeOnly );
+            return;
+         }
+
+         ManualHookForAllComponents( activeOnly );
+      }
+
+      private void ManualHookForAllComponents( bool activeOnly )
+      {
+#if MANAGED
+         var components = new List<Component>( 256 );
+#endif
+
          foreach( var root in GetAllRoots() )
          {
-            TraverseChildrenManualHook( root, activeOnly );
+            if( root == null || ( activeOnly && !root.activeInHierarchy ) ) continue;
+
+#if MANAGED
+            components.Clear();
+            root.GetComponentsInChildren<Component>( !activeOnly, components );
+            foreach( var component in components )
+            {
+               HookComponent( component, activeOnly );
+            }
+#else
+            var components = root.GetComponentsInChildren<Component>( !activeOnly );
+            for( int i = 0 ; i < components.Length ; i++ )
+            {
+               HookComponent( components[ i ], activeOnly );
+            }
+#endif
+         }
+
+#if MANAGED
+         HookUIToolkitText( activeOnly );
+#endif
+      }
+
+      private void HookComponent( Component component, bool activeOnly )
+      {
+         if( component == null ) return;
+         if( activeOnly && !component.gameObject.activeInHierarchy ) return;
+
+         var textComponent = component.CreateDerivedProxyIfRequiredAndPossible();
+         if( textComponent != null )
+         {
+            Hook_TextChanged( textComponent, false );
+         }
+
+         if( Settings.EnableTextureTranslation || Settings.EnableTextureDumping )
+         {
+            if( component.IsKnownImageType() )
+            {
+               Texture2D _ = null;
+               Hook_ImageChangedOnComponent( component, ref _, false, false );
+            }
          }
       }
+
+      private void ManualHookForTextComponents( bool activeOnly )
+      {
+#if MANAGED
+         if( Settings.EnableTextMeshPro )
+         {
+            HookTextComponentsOfType( UnityTypes.TMP_Text, activeOnly );
+         }
+         if( Settings.EnableUGUI )
+         {
+            HookTextComponentsOfType( UnityTypes.Text, activeOnly );
+            HookTextComponentsOfType( UnityTypes.UguiNovelText, activeOnly );
+            HookTextComponentsOfType( UnityTypes.TextArea2D, activeOnly );
+         }
+         if( Settings.EnableTextMesh )
+         {
+            HookTextComponentsOfType( UnityTypes.TextMesh, activeOnly );
+         }
+         if( Settings.EnableNGUI )
+         {
+            HookTextComponentsOfType( UnityTypes.UILabel, activeOnly );
+         }
+         if( Settings.EnableFairyGUI )
+         {
+            HookTextComponentsOfType( UnityTypes.TextField, activeOnly );
+         }
+         if( Settings.EnableUIElements )
+         {
+            HookUIToolkitText( activeOnly );
+         }
+#else
+         ManualHookForAllComponents( activeOnly );
+#endif
+      }
+
+#if MANAGED
+      private void HookTextComponentsOfType( TypeContainer type, bool activeOnly )
+      {
+         if( type == null ) return;
+
+         var objects = ComponentHelper.FindObjectsOfType( type.UnityType, !activeOnly );
+         if( objects == null ) return;
+
+         foreach( var obj in objects )
+         {
+            var component = obj as Component;
+            if( component == null ) continue;
+            if( activeOnly && !component.gameObject.activeInHierarchy ) continue;
+
+            var textComponent = component.CreateDerivedProxyIfRequiredAndPossible();
+            if( textComponent != null )
+            {
+               Hook_TextChanged( textComponent, false );
+            }
+         }
+      }
+
+      private void HookUIToolkitText( bool activeOnly )
+      {
+         if( !Settings.EnableUIElements || UnityTypes.UIDocument == null || UnityTypes.TextElement == null ) return;
+
+         var documents = ComponentHelper.FindObjectsOfType( UnityTypes.UIDocument.UnityType, !activeOnly );
+         if( documents == null ) return;
+
+         foreach( var document in documents )
+         {
+            var component = document as Component;
+            if( component == null ) continue;
+            if( activeOnly && !component.gameObject.activeInHierarchy ) continue;
+
+            var root = component.GetType().CachedProperty( "rootVisualElement" )?.Get( component );
+            if( root != null )
+            {
+               HookVisualElementTree( root, activeOnly );
+            }
+         }
+      }
+
+      private void HookVisualElementTree( object element, bool activeOnly )
+      {
+         if( element == null ) return;
+
+         if( UnityTypes.TextElement.IsAssignableFrom( element.GetUnityType() ) )
+         {
+            var isInputField = UnityTypes.UIToolkitTextField != null
+               && UnityTypes.UIToolkitTextField.IsAssignableFrom( element.GetUnityType() );
+
+            if( !isInputField && ( !activeOnly || IsVisualElementActive( element ) ) )
+            {
+               Hook_TextChanged( element, false );
+            }
+         }
+
+         var children = element.GetType().CachedMethod( "Children" )?.Invoke( element ) as IEnumerable;
+         if( children == null ) return;
+
+         foreach( var child in children )
+         {
+            HookVisualElementTree( child, activeOnly );
+         }
+      }
+
+      private static bool IsVisualElementActive( object element )
+      {
+         var type = element.GetType();
+         if( type.CachedProperty( "panel" )?.Get( element ) == null ) return false;
+         if( Equals( type.CachedProperty( "visible" )?.Get( element ), false ) ) return false;
+
+         if( type.CachedProperty( "worldBound" )?.Get( element ) is Rect bounds )
+         {
+            if( bounds.width <= 0f || bounds.height <= 0f ) return false;
+         }
+
+         return true;
+      }
+#endif
 
       private void ManualHookForTextures()
       {
@@ -3681,6 +3857,43 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private IEnumerable<GameObject> GetAllRoots()
       {
+         if( UnityFeatures.SupportsSceneManager )
+         {
+            var dontDestroyOnLoadIncluded = false;
+            var sceneCount = SceneManager.sceneCount;
+            for( int i = 0 ; i < sceneCount ; i++ )
+            {
+               var scene = SceneManager.GetSceneAt( i );
+               if( !scene.isLoaded ) continue;
+
+               if( scene.name == "DontDestroyOnLoad" )
+               {
+                  dontDestroyOnLoadIncluded = true;
+               }
+
+               var roots = scene.GetRootGameObjects();
+               for( int j = 0 ; j < roots.Length ; j++ )
+               {
+                  yield return roots[ j ];
+               }
+            }
+
+            if( !dontDestroyOnLoadIncluded )
+            {
+               var dontDestroyOnLoad = SceneManager.GetSceneByName( "DontDestroyOnLoad" );
+               if( dontDestroyOnLoad.IsValid() && dontDestroyOnLoad.isLoaded )
+               {
+                  var roots = dontDestroyOnLoad.GetRootGameObjects();
+                  for( int j = 0 ; j < roots.Length ; j++ )
+                  {
+                     yield return roots[ j ];
+                  }
+               }
+            }
+
+            yield break;
+         }
+
          var objects = ComponentHelper.FindObjectsOfType<GameObject>();
          foreach( var obj in objects )
          {
@@ -3732,40 +3945,6 @@ namespace XUnity.AutoTranslator.Plugin.Core
                   var child = obj.transform.GetChild( i );
                   TraverseChildren( writer, child.gameObject, identation + " " );
                }
-            }
-         }
-      }
-
-      private void TraverseChildrenManualHook( GameObject obj, bool activeOnly )
-      {
-         if( obj == null || ( activeOnly && !obj.activeInHierarchy ) )
-            return;
-
-         var components = obj.GetComponents<Component>();
-         foreach( var component in components )
-         {
-            var textComponent = component.CreateDerivedProxyIfRequiredAndPossible();
-            if( textComponent != null )
-            {
-               Hook_TextChanged( textComponent, false );
-            }
-
-            if( Settings.EnableTextureTranslation || Settings.EnableTextureDumping )
-            {
-               if( component.IsKnownImageType() )
-               {
-                  Texture2D _ = null;
-                  Hook_ImageChangedOnComponent( component, ref _, false, false );
-               }
-            }
-         }
-
-         if( obj.transform != null )
-         {
-            for( int i = 0; i < obj.transform.childCount; i++ )
-            {
-               var child = obj.transform.GetChild( i );
-               TraverseChildrenManualHook( child.gameObject, activeOnly );
             }
          }
       }

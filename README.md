@@ -1,6 +1,6 @@
 ﻿# XUnity Auto Translator — Suzerain Fork
 
-> **Fork version: 6.2.3**
+> **Fork version: 6.3.0**
 >
 > A user-focused fork of [XUnity.AutoTranslator](https://github.com/bbepis/XUnity.AutoTranslator), built for readable UI at any resolution, safer translation files, and fewer “restart the game” moments.
 >
@@ -11,7 +11,9 @@
 > * **Faster, safer translation files.** Large files load faster and reloads are incremental, so edits no longer trigger a full reparse freeze. Pruning keeps comments, directives, and regex lines; URLs and `//` no longer corrupt after save/reload; rewrites are atomic and backed up.
 > * **Wrapper-aware translation reuse.** Quotes, brackets, angle brackets, and numbered/bulleted prefixes reuse the cached core translation and re-apply the wrapper, so `1. Hello brother`, `Hello brother`, `"Hello brother"`, and `<Hello brother>` no longer create duplicate lines or re-translations.
 > * **Recovery without a restart.** Reboot now clears the shutdown latch and spam/translation counters, and caches/watchers are released cleanly after plugin or scene changes.
-> * **Unity 6 / IL2CPP ready.** New Input System support, TMP font fallback, corrected hook selection, and fewer harmless Unity 6 warnings.
+> * **Broader text coverage.** TMP `SetText(string/char[])` overloads are hooked, UI Toolkit `TextElement` trees are discovered through `UIDocument`, and UI Toolkit translations avoid firing game change events.
+> * **Faster scene scans, fewer glyph hitches.** Text-only native queries replace full-tree scene walks, the full Hook covers inactive roots, and translated glyphs are prewarmed for TMP and UGUI.
+> * **Unity 6 / IL2CPP ready.** New Input System support, UI Toolkit text discovery, TMP font fallback and glyph prewarming, corrected hook selection, and fewer harmless Unity 6 warnings.
 >
 > **Compatibility:** managed games (BepInEx 5, MelonLoader, ReiPatcher, IPA, UnityInjector) and IL2CPP games (BepInEx 6, MelonLoader IL2CPP). A modern managed build is available for newer Unity runtimes; see [target framework support](docs/target-framework-support.md).
 >

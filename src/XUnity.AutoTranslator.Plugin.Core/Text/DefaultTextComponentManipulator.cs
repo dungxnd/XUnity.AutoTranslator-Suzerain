@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using UnityEngine;
 using XUnity.AutoTranslator.Plugin.Core.Configuration;
 using XUnity.AutoTranslator.Plugin.Core.Utilities;
@@ -18,11 +19,22 @@ namespace XUnity.AutoTranslator.Plugin.Core.Text
 
       private readonly Type _type;
       private readonly CachedProperty _property;
+      private readonly bool _isTmpText;
+      private readonly CachedMethod _tmpSetText;
+      private readonly StringBuilder _tmpBuilder = new StringBuilder( 256 );
 
       public DefaultTextComponentManipulator( Type type )
       {
          _type = type;
          _property = type.CachedProperty( TextPropertyName );
+
+#if MANAGED
+         _isTmpText = UnityTypes.TMP_Text != null && UnityTypes.TMP_Text.ClrType.IsAssignableFrom( type );
+         if( _isTmpText )
+         {
+            _tmpSetText = UnityTypes.TMP_Text.ClrType.CachedMethod( "SetText", typeof( StringBuilder ) );
+         }
+#endif
       }
 
       public string GetText( object ui )
@@ -105,7 +117,26 @@ namespace XUnity.AutoTranslator.Plugin.Core.Text
          var property = _property;
          if( property != null )
          {
-            property.Set( ui, text );
+            var textSet = false;
+
+            if( _isTmpText && _tmpSetText != null )
+            {
+               try
+               {
+                  _tmpBuilder.Length = 0;
+                  _tmpBuilder.Append( text );
+                  _tmpSetText.Invoke( ui, _tmpBuilder );
+                  textSet = true;
+               }
+               catch
+               {
+               }
+            }
+
+            if( !textSet )
+            {
+               property.Set( ui, text );
+            }
 
 #if MANAGED
             if( Settings.IgnoreVirtualTextSetterCallingRules )

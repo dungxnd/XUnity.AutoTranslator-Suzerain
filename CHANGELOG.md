@@ -2,6 +2,22 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.3.0
+
+#### New
+* UI Toolkit text is discovered through `UIDocument` visual trees, including `TextElement`, `Label`, and `Button` text; expected writes use `SetValueWithoutNotify`/`MarkDirtyText` so game `ChangeEvent` handlers are not fired, and `TextField` input is excluded
+* Added hooks for the Unity 6 `TextElement.SetText` char-array range, `StringBuilder`, integer, and formatted-float overloads, plus UI Toolkit rich-text detection
+* Translated text prewarms TMP glyphs through `TMP_FontAsset.TryAddCharacters` and legacy UGUI glyphs through `Font.RequestCharactersInTexture`; missing TMP characters are logged
+
+#### Change
+* TMP text now hooks `SetText(string)`, `SetText(char[])`, and `SetText(char[], int, int)` in addition to `.text` and `SetCharArray`; TMP writes use `SetText(StringBuilder)` when available
+* Scene-load and Hook scans use unsorted `FindObjectsByType`, scene-root enumeration for additive scenes and `DontDestroyOnLoad`, and text-only component queries; the full Hook now includes inactive roots
+* Managed scans reuse a component list instead of allocating `GetComponents<Component>()` per GameObject; UI Toolkit `UIDocument` trees are included in scene-load and full Hook scans
+
+#### Bug Fix
+* TMP text set through `SetText(...)` overloads that bypassed the `.text` setter is now translated
+* UI Toolkit input fields are no longer translated, and scroll reset/path logging no longer assume every text object is a `Component`
+
 ### 6.2.3
 
 #### Bug Fix

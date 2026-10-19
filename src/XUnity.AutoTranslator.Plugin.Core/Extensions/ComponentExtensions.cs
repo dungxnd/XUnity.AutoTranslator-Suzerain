@@ -109,6 +109,10 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
             {
                manipulator = new UguiNovelTextComponentManipulator( ui.GetType() );
             }
+            else if( UnityTypes.TextElement != null && UnityTypes.TextElement.IsAssignableFrom( unityType ) )
+            {
+               manipulator = new UIElementsTextComponentManipulator( ui.GetType() );
+            }
             else
             {
                manipulator = new DefaultTextComponentManipulator( ui.GetType() );
@@ -121,6 +125,11 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
 
       public static bool ShouldIgnoreTextComponent( this object ui )
       {
+         if( ui != null && UnityTypes.UIToolkitTextField != null && UnityTypes.UIToolkitTextField.IsAssignableFrom( ui.GetUnityType() ) )
+         {
+            return true;
+         }
+
          if( ui is Component component && component )
          {
             var tr = component.transform;
@@ -238,6 +247,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
             ( UnityTypes.Text != null && UnityTypes.Text.IsAssignableFrom( unityType ) && Equals( clrType.CachedProperty( SupportRichTextPropertyName )?.Get( ui ), true ) )
             || ( UnityTypes.TextMesh != null && UnityTypes.TextMesh.IsAssignableFrom( unityType ) && Equals( clrType.CachedProperty( RichTextPropertyName )?.Get( ui ), true ) )
             || DoesTextMeshProSupportRichText( ui, clrType, unityType )
+            || ( UnityTypes.TextElement != null && UnityTypes.TextElement.IsAssignableFrom( unityType ) && Equals( clrType.CachedProperty( "enableRichText" )?.Get( ui ), true ) )
             || ( UnityTypes.UguiNovelText != null && UnityTypes.UguiNovelText.IsAssignableFrom( unityType ) )
             || ( UnityTypes.TextField != null && UnityTypes.TextField.IsAssignableFrom( unityType ) );
       }
@@ -585,7 +595,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
          }
          else
          {
-            throw new ArgumentException( "Expected object to be a GameObject or component.", "obj" );
+            return null;
          }
 
          return go;
@@ -594,6 +604,10 @@ namespace XUnity.AutoTranslator.Plugin.Core.Extensions
       public static string[] GetPathSegments( this object obj )
       {
          var go = GetAssociatedGameObject( obj );
+         if( go == null )
+         {
+            return new[] { obj?.GetType().Name ?? "Unknown" };
+         }
 
          int i = 0;
          int j = 0;
