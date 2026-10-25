@@ -2,6 +2,11 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.3.1
+
+#### Bug Fix
+* IL2CPP builds no longer register the TMP `SetText(string)`, `SetText(char[])`, and `SetText(char[], int, int)` hooks added in 6.3.0. Patching those overloads through the managed proxy could crash with `AccessViolationException` in `il2cpp_runtime_invoke`; managed builds retain the hooks.
+
 ### 6.3.0
 
 #### New

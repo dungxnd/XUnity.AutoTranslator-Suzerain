@@ -6,7 +6,7 @@
 	<!-- Use these properties to change version numbers globally -->
 	<PropertyGroup>
 		<!-- Plugin version -->
-		<Version>6.3.0</Version>
+		<Version>6.3.1</Version>
 		<!-- XUnity.Common version -->
 		<VersionCommon>1.0.5</VersionCommon>
 		<!-- XUnity.AutoTranslator.Plugin.ExtProtocol version -->
