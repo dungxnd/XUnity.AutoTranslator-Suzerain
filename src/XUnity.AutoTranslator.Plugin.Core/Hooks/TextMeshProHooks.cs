@@ -23,6 +23,10 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.TextMeshPro
          typeof( TeshMeshPro_OnEnable_Hook ),
          typeof( TMP_Text_text_Hook ),
 
+#if IL2CPP
+         typeof( TMP_Text_OnPreRenderText_Hook ),
+#endif
+
          typeof( TMP_Text_SetText_Hook1 ),
          typeof( TMP_Text_SetText_Hook2 ),
          typeof( TMP_Text_SetText_Hook3 ),
@@ -698,6 +702,40 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.TextMeshPro
       }
 #endif
    }
+
+#if IL2CPP
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TMP_Text_OnPreRenderText_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TMP_Text != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         var type = UnityTypes.TextMeshProUGUI?.ClrType ?? UnityTypes.TMP_Text?.ClrType;
+         if( type == null ) return null;
+
+         var textInfo = UnityTypes.TMP_TextInfo?.ClrType;
+         if( textInfo != null )
+         {
+            var method = AccessToolsShim.Method( type, "OnPreRenderText", new[] { textInfo } );
+            if( method != null ) return method;
+         }
+
+         return AccessToolsShim.Method( type, "OnPreRenderText", Type.EmptyTypes );
+      }
+
+      static void Postfix( Component __instance )
+      {
+         if( __instance == null ) return;
+
+         __instance = __instance.CreateTextMeshProDerivedProxy();
+         AutoTranslationPlugin.Current.QueueTextChanged( __instance );
+      }
+   }
+#endif
 
    [HookingHelperPriority( HookPriority.Last )]
    internal static class TMP_Text_maxVisibleCharacters_Hook

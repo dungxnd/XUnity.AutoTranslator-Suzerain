@@ -2,6 +2,11 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.3.2
+
+#### Bug Fix
+* IL2CPP dynamically updated TMP text is detected through `OnPreRenderText` and translated on the next plugin update. This covers response choices and other text rebuilt through `SetText(...)` without re-enabling the crashing `SetText` overload hooks.
+
 ### 6.3.1
 
 #### Bug Fix

@@ -89,6 +89,7 @@ namespace XUnity.Common.Constants
       // TextMeshPro
       public static readonly TypeContainer TMP_InputField = FindType( "TMPro.TMP_InputField" );
       public static readonly TypeContainer TMP_Text = FindType( "TMPro.TMP_Text" );
+      public static readonly TypeContainer TMP_TextInfo = FindType( "TMPro.TMP_TextInfo" );
       public static readonly TypeContainer TextMeshProUGUI = FindType( "TMPro.TextMeshProUGUI" );
       public static readonly TypeContainer TextMeshPro = FindType( "TMPro.TextMeshPro" );
       public static readonly TypeContainer TMP_FontAsset = FindType( "TMPro.TMP_FontAsset" );

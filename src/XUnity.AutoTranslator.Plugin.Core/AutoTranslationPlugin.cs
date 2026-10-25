@@ -88,6 +88,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
 
       private bool _isInTranslatedMode = true;
       private bool _textHooksEnabled = true;
+      private readonly List<object> _pendingTextChanges = new List<object>();
 
       private float _batchOperationSecondCounter = 0;
 
@@ -889,6 +890,35 @@ namespace XUnity.AutoTranslator.Plugin.Core
          if( onEnable )
          {
             CheckSpriteRenderer( ui );
+         }
+      }
+
+      internal void QueueTextChanged( object ui )
+      {
+         if( ui == null || !_textHooksEnabled || _temporarilyDisabled || Settings.IsShutdown ) return;
+         if( _pendingTextChanges.Count >= 256 || _pendingTextChanges.Contains( ui ) ) return;
+
+         _pendingTextChanges.Add( ui );
+      }
+
+      private void ProcessPendingTextChanges()
+      {
+         if( !_textHooksEnabled || _temporarilyDisabled || Settings.IsShutdown || _pendingTextChanges.Count == 0 ) return;
+
+         var count = Math.Min( _pendingTextChanges.Count, 32 );
+         var pending = _pendingTextChanges.GetRange( 0, count );
+         _pendingTextChanges.RemoveRange( 0, count );
+
+         for( int i = 0 ; i < pending.Count ; i++ )
+         {
+            try
+            {
+               Hook_TextChanged( pending[ i ], false );
+            }
+            catch( Exception e )
+            {
+               XuaLogger.AutoTranslator.Warn( e, "An error occurred while processing a deferred text change." );
+            }
          }
       }
 
@@ -2935,6 +2965,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
          {
             var frameCount = Time.frameCount;
 
+            ProcessPendingTextChanges();
             TranslationManager.Update();
 
             if( frameCount % 36000 == 0 && CachedKeys.Count > 0 )
@@ -4062,6 +4093,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
          _textsToCopyToClipboard.Clear();
          _textsToCopyToClipboardOrdered.Clear();
          _immediatelyTranslating.Clear();
+         _pendingTextChanges.Clear();
 
          if( ReferenceEquals( Current, this ) )
          {
