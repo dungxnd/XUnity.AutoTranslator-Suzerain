@@ -482,6 +482,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
             var overflowModeProperty = clrType.CachedProperty( "overflowMode" );
             var originalOverflowMode = overflowModeProperty?.Get( ui );
             bool changedOverflow = false;
+            _ = changedOverflow;
             bool isUntouched = _unresize == null;
 
             if( cache.HasAnyResizeCommands )
@@ -629,24 +630,7 @@ namespace XUnity.AutoTranslator.Plugin.Core
                }
             }
 
-            if( !changedOverflow )
-            {
-               // ellipsis (1) works
-               // masking (2) has a tendency to break in some versions of TMP
-               // truncate (3) works
-               if( originalOverflowMode != null && (int)originalOverflowMode == 2 )
-               {
-                  overflowModeProperty.Set( ui, 3 );
-
-                  if( isUntouched )
-                  {
-                     _unresize = g =>
-                     {
-                        overflowModeProperty.Set( g, 2 );
-                     };
-                  }
-               }
-            }
+            // Preserve original overflow mode (e.g. Masking = 2) so text in ScrollViews is not truncated.
          }
       }
 

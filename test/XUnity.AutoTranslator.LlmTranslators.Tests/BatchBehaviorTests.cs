@@ -373,6 +373,29 @@ public class BatchBehaviorTests
         Assert.Equal("Hello", BaseEndpointBehavior.StripThinkBlock("Hello"));
     }
 
+    [Fact]
+    public void ParsesMarkdownWrappedMarkerBlocks()
+    {
+        var result = BaseEndpointBehavior.ExtractTranslations(
+            "**<<<1>>>**\nHello\n**<<<2>>>**\nWorld",
+            new[] { "你好", "世界" },
+            CreateConfig());
+
+        Assert.Equal(new[] { "Hello", "World" }, result);
+    }
+
+    [Fact]
+    public void ParsesBulletMarkerBlocks()
+    {
+        var result = BaseEndpointBehavior.ExtractTranslations(
+            "- <<<1>>> Hello\n* <<<2>>> World",
+            new[] { "你好", "世界" },
+            CreateConfig());
+
+        Assert.Equal(new[] { "Hello", "World" }, result);
+    }
+
+
     private static int CountOccurrences(string value, string token)
     {
         var count = 0;

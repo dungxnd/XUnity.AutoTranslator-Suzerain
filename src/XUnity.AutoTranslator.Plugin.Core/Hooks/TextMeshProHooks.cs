@@ -24,7 +24,8 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.TextMeshPro
          typeof( TMP_Text_text_Hook ),
 
 #if IL2CPP
-         typeof( TMP_Text_OnPreRenderText_Hook ),
+         typeof( TextMeshProUGUI_GenerateTextMesh_Hook ),
+         typeof( TextMeshPro_GenerateTextMesh_Hook ),
 #endif
 
          typeof( TMP_Text_SetText_Hook1 ),
@@ -705,26 +706,38 @@ namespace XUnity.AutoTranslator.Plugin.Core.Hooks.TextMeshPro
 
 #if IL2CPP
    [HookingHelperPriority( HookPriority.Last )]
-   internal static class TMP_Text_OnPreRenderText_Hook
+   internal static class TextMeshProUGUI_GenerateTextMesh_Hook
    {
       static bool Prepare( object instance )
       {
-         return UnityTypes.TMP_Text != null;
+         return UnityTypes.TextMeshProUGUI != null;
       }
 
       static MethodBase TargetMethod( object instance )
       {
-         var type = UnityTypes.TextMeshProUGUI?.ClrType ?? UnityTypes.TMP_Text?.ClrType;
-         if( type == null ) return null;
+         return AccessToolsShim.Method( UnityTypes.TextMeshProUGUI.ClrType, "GenerateTextMesh", Type.EmptyTypes );
+      }
 
-         var textInfo = UnityTypes.TMP_TextInfo?.ClrType;
-         if( textInfo != null )
-         {
-            var method = AccessToolsShim.Method( type, "OnPreRenderText", new[] { textInfo } );
-            if( method != null ) return method;
-         }
+      static void Postfix( Component __instance )
+      {
+         if( __instance == null ) return;
 
-         return AccessToolsShim.Method( type, "OnPreRenderText", Type.EmptyTypes );
+         __instance = __instance.CreateTextMeshProDerivedProxy();
+         AutoTranslationPlugin.Current.QueueTextChanged( __instance );
+      }
+   }
+
+   [HookingHelperPriority( HookPriority.Last )]
+   internal static class TextMeshPro_GenerateTextMesh_Hook
+   {
+      static bool Prepare( object instance )
+      {
+         return UnityTypes.TextMeshPro != null;
+      }
+
+      static MethodBase TargetMethod( object instance )
+      {
+         return AccessToolsShim.Method( UnityTypes.TextMeshPro.ClrType, "GenerateTextMesh", Type.EmptyTypes );
       }
 
       static void Postfix( Component __instance )

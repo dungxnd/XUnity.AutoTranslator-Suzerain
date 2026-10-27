@@ -15,11 +15,11 @@ public static class BaseEndpointBehavior
         "split one block into several markers, skip blocks, or add explanations.";
 
     private static readonly Regex BatchMarkerRegex = new Regex(
-        @"^[ \t]*<{3,}[ \t]*(\d+)[ \t]*>{3,}[ \t]*(.*?)\r?$",
+        @"^[ \t]*(?:[-*#>]|\d+\.|\*\*)*[ \t]*<{3,}[ \t]*(\d+)[ \t]*>{3,}(?:\*\*)*[:* \t]*(.*?)\r?$",
         RegexOptions.Multiline);
 
     private static readonly Regex MarkerLikeRegex = new Regex(
-        @"^[ \t]*<{3,}[ \t]*\d+",
+        @"^[ \t]*(?:[-*#>]|\d+\.|\*\*)*[ \t]*<{3,}[ \t]*\d+",
         RegexOptions.Multiline);
 
     private static readonly Regex NumberedLineRegex = new Regex(

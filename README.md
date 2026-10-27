@@ -1,6 +1,6 @@
 ﻿# XUnity Auto Translator — Suzerain Fork
 
-> **Fork version: 6.3.2**
+> **Fork version: 6.4.0**
 >
 > A user-focused fork of [XUnity.AutoTranslator](https://github.com/bbepis/XUnity.AutoTranslator), built for readable UI at any resolution, safer translation files, and fewer “restart the game” moments.
 >

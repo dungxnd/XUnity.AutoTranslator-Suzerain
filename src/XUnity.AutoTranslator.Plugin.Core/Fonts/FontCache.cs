@@ -21,6 +21,7 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
       private static UnityEngine.Object OverrideFontTextMeshPro;
       private static bool _hasReadFallbackFontTextMeshPro = false;
       private static UnityEngine.Object FallbackFontTextMeshPro;
+      private static readonly HashSet<char> _prewarmedTmpChars = new HashSet<char>();
 
 #if IL2CPP
       private static bool ShouldRetryWithCustomProxies( Exception e )
@@ -157,6 +158,18 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
             }
             else if( UnityTypes.TMP_Text != null && UnityTypes.TMP_Text.IsAssignableFrom( type ) )
             {
+               bool hasNewChars = false;
+               for( int i = 0 ; i < text.Length ; i++ )
+               {
+                  if( !_prewarmedTmpChars.Contains( text[ i ] ) )
+                  {
+                     hasNewChars = true;
+                     break;
+                  }
+               }
+
+               if( !hasNewChars ) return;
+
                var font = ui.GetType().CachedProperty( "font" )?.Get( ui );
                if( font != null && TmpTryAddCharacters != null )
                {
@@ -169,6 +182,11 @@ namespace XUnity.AutoTranslator.Plugin.Core.Fonts
                   }
 
                   TmpTryAddCharacters.Invoke( font, arguments );
+
+                  for( int i = 0 ; i < text.Length ; i++ )
+                  {
+                     _prewarmedTmpChars.Add( text[ i ] );
+                  }
 
                   var missing = arguments.Length > 1 ? arguments[ 1 ] as string : null;
                   if( !string.IsNullOrEmpty( missing ) )

@@ -2,6 +2,18 @@
 
 This changelog covers the Suzerain fork. Entries below 6.0.0 are inherited from upstream XUnity.AutoTranslator.
 
+### 6.4.0
+
+#### Bug Fix
+* IL2CPP dynamically updated TMP text is detected through `GenerateTextMesh()` hooks on `TextMeshProUGUI` and `TextMeshPro` and queued for translation on plugin update, replacing the non-callable `OnPreRenderText` event target.
+* Fixed text truncation in ScrollViews (e.g. dialogue response choices) by preserving `Masking` (overflowMode = 2) in `ResizeUI` instead of forcing `Truncate` (overflowMode = 3).
+* Fixed 60 FPS infinite translation loop and translation file corruption caused by `<noparse></noparse>` tag prefixes on dialogue choices: normalized tags during cache lookup, comparison, and component writes.
+* Prevented redundant text re-processing and memory allocation in `QueueTextChanged` using text comparison and O(1) set-based change queue deduplication.
+* Converted deferred text change queue to zero-allocation `Queue<object>` with instant membership check to eliminate per-frame list allocations and array shifting.
+* Expanded LLM batch marker regex parser in `BaseEndpointBehavior` to gracefully handle markdown formatting (`**<<<n>>>**`, `- <<<n>>>`, `* <<<n>>>`), preventing batch parsing failures and dropped translations.
+* Cached prewarmed glyphs in `FontCache.PrewarmTranslation` to avoid repetitive reflection calls and allocations for TextMesh Pro fonts.
+* Extended `UnityObjectReferenceComparer` in IL2CPP builds to implement `IEqualityComparer<object>`.
+
 ### 6.3.2
 
 #### Bug Fix

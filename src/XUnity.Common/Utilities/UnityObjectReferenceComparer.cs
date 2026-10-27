@@ -11,7 +11,7 @@ namespace XUnity.Common.Utilities
    /// WARNING: Pubternal API (internal). Do not use. May change during any update.
    /// </summary>
 #if IL2CPP
-   public class UnityObjectReferenceComparer : IEqualityComparer<Il2CppObjectBase>
+   public class UnityObjectReferenceComparer : IEqualityComparer<Il2CppObjectBase>, IEqualityComparer<object>
 #else
    public class UnityObjectReferenceComparer : IEqualityComparer<object>
 #endif
@@ -54,9 +54,18 @@ namespace XUnity.Common.Utilities
       /// <param name="obj"></param>
       /// <returns></returns>
 #if IL2CPP
+      public int GetHashCode( object obj )
+      {
+         if( obj is Il2CppObjectBase il2cppObj )
+         {
+            return il2cppObj.Pointer.GetHashCode();
+         }
+         return obj != null ? obj.GetHashCode() : 0;
+      }
+
       public int GetHashCode( Il2CppObjectBase obj )
       {
-         return obj.Pointer.GetHashCode();
+         return obj != null ? obj.Pointer.GetHashCode() : 0;
       }
 #else
       public int GetHashCode( object obj )
